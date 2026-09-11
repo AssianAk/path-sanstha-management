@@ -15,6 +15,7 @@ import loansRoutes from './modules/loans/loans.routes';
 import collectionsRoutes from './modules/collections/collections.routes';
 import glRoutes from './modules/gl/gl.routes';
 import reportsRoutes from './modules/reports/reports.routes';
+import digitalRoutes from './modules/digital/digital.routes';
 
 dotenv.config();
 
@@ -33,8 +34,8 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({
     status: 'HEALTHY',
     system: 'Co-operative Bank / Pat Sanstha CBS',
-    phase: 'Phase 6 - Reporting & Regulatory MIS',
-    version: '1.6.0',
+    phase: 'Phase 7 - Member Digital Channels & Integrations',
+    version: '1.7.0',
     timestamp: new Date().toISOString()
   });
 });
@@ -64,6 +65,9 @@ app.use('/api/gl', glRoutes);
 
 // Phase 6 Modules
 app.use('/api/reports', reportsRoutes);
+
+// Phase 7 Modules
+app.use('/api/digital', digitalRoutes);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

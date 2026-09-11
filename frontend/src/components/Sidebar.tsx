@@ -14,7 +14,8 @@ import {
   ShieldAlert,
   BookOpen,
   GitBranch,
-  BarChart3
+  BarChart3,
+  Smartphone
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -54,6 +55,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
 
   const phase6Items = [
     { to: '/reports', label: 'Reports & Regulatory MIS', icon: BarChart3 },
+  ];
+
+  const phase7Items = [
+    { to: '/digital', label: 'Digital Channels & Portal', icon: Smartphone },
   ];
 
   return (
@@ -237,6 +242,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
           );
         })}
 
+        {/* Phase 7 Group */}
+        <div className="pt-3 px-3 py-1 text-[10px] font-semibold text-cyan-400 uppercase tracking-wider flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+          <span>Phase 7 - Digital Channels</span>
+        </div>
+        {phase7Items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  isActive
+                    ? 'bg-cyan-600 text-white font-semibold shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`
+              }
+            >
+              <div className="flex items-center space-x-2.5">
+                <Icon className="w-3.5 h-3.5" />
+                <span>{item.label}</span>
+              </div>
+            </NavLink>
+          );
+        })}
+
         {/* Roadmap Preview */}
         <div className="pt-4 px-3 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
           Roadmap Modules
@@ -244,7 +276,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
         <div className="px-3 space-y-1 text-xs text-slate-500">
           <div className="flex items-center space-x-2 py-0.5">
             <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-            <span>Phase 7: Member Digital Channels</span>
+            <span>Phase 8: Hardening & Rollout</span>
           </div>
         </div>
       </nav>

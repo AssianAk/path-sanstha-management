@@ -183,6 +183,9 @@ model Customer {
   approvedByUserId   String?
   approvedBy         User?             @relation("CustomerApprovedBy", fields: [approvedByUserId], references: [id])
 
+  passwordHash       String?
+  mpin               String?
+
   addresses          CustomerAddress[]
   nominees           CustomerNominee[]
   kycDocuments       KycDocument[]
@@ -190,6 +193,8 @@ model Customer {
   accounts           Account[]
   loanApplications   LoanApplication[]
   loanAccounts       LoanAccount[]
+  notifications      NotificationLog[]
+  standingInstructions StandingInstruction[]
   
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -324,6 +329,7 @@ model Account {
   destTransactions      Transaction[]       @relation("DestinationAccount")
   transactionLines      TransactionLine[]
   disbursedLoans        LoanAccount[]       @relation("LoanSavingsCredit")
+  sourceStandingInstructions StandingInstruction[] @relation("SourceAccountSI")
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 }
@@ -673,3 +679,79 @@ model SystemSetting {
   isEditable  Boolean  @default(true)
   updatedAt   DateTime @updatedAt
 }
+
+// -------------------------------------------------------------
+// 10. PHASE 7: DIGITAL CHANNELS, NOTIFICATIONS & E-MANDATES
+// -------------------------------------------------------------
+
+model NotificationLog {
+  id              String   @id @default(uuid())
+  recipientPhone  String
+  recipientEmail  String?
+  channel         String   // SMS, WHATSAPP, EMAIL
+  category        String   // TRANSACTION, ALERT, REMINDER, NOTICE, OTP
+  templateCode    String
+  title           String
+  message         String
+  status          String   @default("SENT") // QUEUED, SENT, DELIVERED, FAILED
+  deliveryRef     String?
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  businessDate    String   // YYYY-MM-DD
+  createdAt       DateTime @default(now())
+}
+
+model StandingInstruction {
+  id                  String                  @id @default(uuid())
+  mandateNumber       String                  @unique // SI-YYYY-XXXXX
+  customerId          String
+  customer            Customer                @relation(fields: [customerId], references: [id])
+  sourceAccountId     String
+  sourceAccount       Account                 @relation("SourceAccountSI", fields: [sourceAccountId], references: [id])
+  instructionType     String                  // RECURRING_DEPOSIT, LOAN_EMI, INTERNAL_TRANSFER
+  targetAccountId     String?
+  targetLoanId        String?
+  amount              Float
+  frequency           String                  @default("MONTHLY") // DAILY, WEEKLY, MONTHLY
+  executionDay        Int                     @default(1) // 1 to 31
+  startDate           String                  // YYYY-MM-DD
+  endDate             String?                 // YYYY-MM-DD
+  nextExecutionDate   String                  // YYYY-MM-DD
+  lastExecutedDate    String?                 // YYYY-MM-DD
+  status              String                  @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED, CANCELLED
+  failureCount        Int                     @default(0)
+  executionLogs       StandingInstructionLog[]
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+}
+
+model StandingInstructionLog {
+  id                    String              @id @default(uuid())
+  standingInstructionId String
+  standingInstruction   StandingInstruction @relation(fields: [standingInstructionId], references: [id], onDelete: Cascade)
+  executionDate         String              // YYYY-MM-DD
+  amount                Float
+  status                String              // SUCCESS, FAILED, SKIPPED_INSUFFICIENT_FUNDS
+  transactionReference  String?
+  failureReason         String?
+  createdAt             DateTime            @default(now())
+}
+
+model DigitalPaymentRequest {
+  id                          String    @id @default(uuid())
+  paymentReference            String    @unique // PAY-YYYY-XXXXX
+  upiIntentUrl                String
+  qrData                      String
+  customerId                  String?
+  accountNumber               String?
+  loanAccountNumber           String?
+  purpose                     String    // SAVINGS_DEPOSIT, SHARE_CAPITAL, LOAN_REPAYMENT, RD_INSTALLMENT
+  amount                      Float
+  utrNumber                   String?
+  status                      String    @default("PENDING") // PENDING, SUCCESS, FAILED, EXPIRED
+  settledTransactionReference String?
+  businessDate                String    // YYYY-MM-DD
+  createdAt                   DateTime  @default(now())
+  settledAt                   DateTime?
+}
+

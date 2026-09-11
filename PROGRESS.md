@@ -17,8 +17,8 @@
 | **Phase 4** | **Collections & Recovery**| Overdue monitoring, DPD calculation, Collector assignment, Demand Notices, NPA | 🟢 Completed | 100% |
 | **Phase 5** | **General Ledger & Accounting**| Chart of Accounts (COA), Multi-branch GL posting, Trial Balance, P&L, Balance Sheet | 🟢 Completed | 100% |
 | **Phase 6** | **Reporting & MIS** | Regulatory returns (Form I, Form IX), MIS dashboards, Member passbooks, CSV export | 🟢 Completed | 100% |
-| **Phase 7** | **Digital Channels & Integrations** | Member self-service portal, SMS/Email/WhatsApp alerts, Payment gateway rails | ⚪ Next Up | 0% |
-| **Phase 8** | **Hardening & Rollout** | Security audit, Performance benchmarks, Disaster Recovery, Production cutover | ⚪ Not Started | 0% |
+| **Phase 7** | **Digital Channels & Integrations** | Member portal, SMS/WhatsApp alerts, Dynamic UPI QR payments, e-Mandates | 🟢 Completed | 100% |
+| **Phase 8** | **Hardening & Rollout** | Security audit, Performance benchmarks, Disaster Recovery, Production cutover | ⚪ Next Up | 0% |
 
 ---
 
@@ -292,10 +292,65 @@
 
 ---
 
-## Phase 7: Member Digital Channels & Integrations (Next Sprint Scope)
+## Phase 7: Member Digital Channels & Integrations (Completed Deliverables)
 
-- [ ] **Member Self-Service Web Portal**: Member login, balance enquiry, mini-statement, loan EMI calculator, profile update.
-- [ ] **SMS / Email / WhatsApp Notification Rails**: Transaction alerts (credit/debit), low balance warnings, loan due date reminders, PTP follow-ups.
-- [ ] **Payment Gateway / QR Collections Rail**: UPI / QR code payment integration for member share subscriptions, deposit additions, and loan EMI repayments.
-- [ ] **NACH / e-Mandate Recurring Collections**: Automated debit mandate scheduler for recurring deposits and loan EMIs.
+### ✅ Completed & Tested Items:
+
+- [x] **Member Self-Service Digital Portal & Authentication**
+  - [x] Dual credential login: Customer Number / Phone + Password or 4-digit MPIN
+  - [x] JWT token generation with role `MEMBER` and customer metadata
+  - [x] Member 360 overview:
+    - Deposit Accounts (Savings, Current, FD, RD) with available balances
+    - Active Loans with outstanding balances, monthly EMIs, and DPD status
+    - Member Shareholding Capital (share certificates and total value)
+    - Chronological mini-statement of recent account debits/credits
+  - [x] Automated SMS login alert dispatched on each portal session
+
+- [x] **Dynamic UPI QR Code Generation Rail**
+  - [x] Real-time UPI intent string generation (`upi://pay?pa=...&am=...&cu=INR&tn=...`) compliant with NPCI UPI standard
+  - [x] Robust SVG QR code generator for browser rendering
+  - [x] Support for self-service deposits, member share capital additions, and loan EMI repayments
+  - [x] Payment reference generator (`PAY-YYYY-XXXXX`) with status tracking (`PENDING`, `SUCCESS`, `EXPIRED`)
+
+- [x] **Automated Payment Settlement Webhook & Double-Entry Invariant**
+  - [x] Simulated payment gateway / UPI callback (`POST /api/digital/payment-webhook`)
+  - [x] ACID double-entry financial settlement:
+    - Debit: Bank Balances / UPI Clearing Account (`GL-1002`)
+    - Credit: Customer Deposit Liability (`GL-2001`) or Loan Principal Asset (`GL-1002`/`GL-1003`)
+    - Guaranteed invariant: $\sum \text{Debits} == \sum \text{Credits}$
+  - [x] UTR number stamp and CBS transaction reference linking
+  - [x] Automated transaction SMS & WhatsApp notification alerts dispatched upon receipt
+
+- [x] **Standing Instructions & e-Mandate Engine**
+  - [x] Auto-debit mandate registration (`SI-YYYY-XXXXX`) for Recurring Deposits (RD) and Loan EMIs
+  - [x] Automated recurring scheduler batch runner (`POST /api/digital/standing-instructions/run-batch`):
+    - Source account available balance verification
+    - Atomic debit from source account + credit to target RD / Loan
+    - Double-entry journal entries with active business date
+    - Next execution date advancement (+1 month)
+    - Automated SMS alert dispatched on success or insufficient balance failure
+
+- [x] **Multi-Channel Notification Register & Audit Trail**
+  - [x] Unified communications log across SMS, WhatsApp, and Email
+  - [x] Category filters (Transactions, Mandates, Alerts, Notices)
+  - [x] Delivery status auditing (`DELIVERED`, `SENT`, `QUEUED`, `FAILED`)
+
+- [x] **Frontend User Interface (React + TypeScript + Tailwind CSS)**
+  - [x] **Digital Channels Hub (`/digital`)**: 4 interactive consoles:
+    1. *Member Self-Service Portal*: Member switcher simulator, digital pass card, deposit accounts grid, active loans grid, and mini-statement
+    2. *Notification Register*: Full searchable table with channel badges, message previews, and delivery statuses
+    3. *Standing Instructions*: Registered mandates list with "Run Mandate Scheduler Batch" button and live results
+    4. *Loan EMI & Deposit Calculator*: Interactive sliders for principal, rate, tenure, with monthly EMI and total interest projection
+  - [x] **Dynamic UPI QR Modal**: Live amount input, purpose selection, interactive SVG QR display, and "Simulate UPI Success" instant settlement trigger
+  - [x] **Sidebar Navigation**: Added `/digital` menu item with active indicator and `Smartphone` icon
+
+---
+
+## Phase 8: Hardening & Rollout (Next Sprint Scope)
+
+- [ ] **End-to-End Stress & Concurrency Testing**: High-volume concurrent transaction test (100 simultaneous teller & transfer postings).
+- [ ] **Security Audit & Role-Guards Verification**: CSRF, rate-limiting, password hashing verification, and unauthorized API traversal test.
+- [ ] **Data Backup & Disaster Recovery Runbook**: Automated DB backup scripts, point-in-time recovery, and schema integrity validation.
+- [ ] **Deployment Packaging & Production Containerization**: Multi-stage Dockerfile, Docker Compose stack with health checks, and production readiness documentation.
+
 

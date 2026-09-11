@@ -177,16 +177,24 @@ async function main() {
   const makerId = userMap.get('maker_pune')!;
   const checkerId = userMap.get('checker_pune')!;
   const bmId = userMap.get('bm_pune')!;
+  // 7. Customers & Members
+  const memberPasswordHash = await bcrypt.hash('Member@123', passwordSalt);
+  const memberMpin = '1234';
 
   const member1 = await prisma.customer.upsert({
     where: { customerNumber: 'CUST-2026-00001' },
-    update: { status: 'ACTIVE', memberStatus: 'ACTIVE' },
+    update: {
+      status: 'ACTIVE',
+      memberStatus: 'ACTIVE',
+      passwordHash: memberPasswordHash,
+      mpin: memberMpin
+    },
     create: {
       customerNumber: 'CUST-2026-00001',
       customerType: 'INDIVIDUAL',
       isMember: true,
       memberNumber: 'MEM-2026-00001',
-      membershipDate: new Date('2026-01-15'),
+      membershipDate: new Date('2026-09-08'),
       memberStatus: 'ACTIVE',
       title: 'Shri',
       firstName: 'Rajesh',
@@ -202,6 +210,8 @@ async function main() {
       aadhaarLast4: '4589',
       phone: '9822012345',
       email: 'rajesh.kulkarni@example.com',
+      passwordHash: memberPasswordHash,
+      mpin: memberMpin,
       branchId: b1.id,
       riskCategory: 'LOW',
       status: 'ACTIVE',
@@ -212,7 +222,12 @@ async function main() {
 
   const member2 = await prisma.customer.upsert({
     where: { customerNumber: 'CUST-2026-00002' },
-    update: { status: 'ACTIVE', memberStatus: 'ACTIVE' },
+    update: {
+      status: 'ACTIVE',
+      memberStatus: 'ACTIVE',
+      passwordHash: memberPasswordHash,
+      mpin: memberMpin
+    },
     create: {
       customerNumber: 'CUST-2026-00002',
       customerType: 'INDIVIDUAL',
@@ -234,6 +249,8 @@ async function main() {
       aadhaarLast4: '7721',
       phone: '9890123456',
       email: 'priya.patil@example.com',
+      passwordHash: memberPasswordHash,
+      mpin: memberMpin,
       branchId: b1.id,
       riskCategory: 'LOW',
       status: 'ACTIVE',

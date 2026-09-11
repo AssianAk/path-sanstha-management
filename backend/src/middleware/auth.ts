@@ -24,13 +24,49 @@ export async function authenticate(req: AuthenticatedRequest, res: Response, nex
     const token = authHeader.split(' ')[1];
     const decoded = verifyToken(token);
 
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       include: { role: true, branch: true }
     });
 
-    if (!user || !user.isActive) {
+    if (!user) {
+      if (decoded.roleCode === 'MEMBER') {
+        const customer = await prisma.customer.findUnique({
+          where: { id: decoded.userId },
+          include: { branch: true }
+        });
+
+        if (!customer || customer.status !== 'ACTIVE') {
+          return res.status(401).json({ success: false, message: 'Member account is inactive or not found.' });
+        }
+
+        req.user = {
+          id: customer.id,
+          username: customer.customerNumber,
+          fullName: `${customer.title} ${customer.firstName} ${customer.lastName}`,
+          email: customer.email || '',
+          roleCode: 'MEMBER',
+          branchId: customer.branchId
+        };
+
+        if (customer.branchId) {
+          const bDate = await prisma.businessDate.findFirst({
+            where: { branchId: customer.branchId, status: 'OPEN' },
+            orderBy: { currentDate: 'desc' }
+          });
+          if (bDate) {
+            req.businessDate = bDate.currentDate;
+          }
+        }
+
+        return next();
+      }
+
       return res.status(401).json({ success: false, message: 'User account is invalid or deactivated.' });
+    }
+
+    if (!user.isActive) {
+      return res.status(401).json({ success: false, message: 'User account is deactivated.' });
     }
 
     req.user = {
