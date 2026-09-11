@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma } from '../../config/db';
 import { AuthenticatedRequest } from '../../middleware/auth';
 import { createAuditLog } from '../../middleware/audit';
+import { generateTransactionReference } from '../../config/sequence';
 
 export async function getActiveTill(req: AuthenticatedRequest, res: Response) {
   try {
@@ -143,10 +144,7 @@ export async function processCashDeposit(req: AuthenticatedRequest, res: Respons
     });
 
     // Execute atomic transaction
-    const txCount = await prisma.transaction.count();
-    const txSeq = String(txCount + 1).padStart(5, '0');
-    const txDateCompact = businessDate.replace(/-/g, '');
-    const transactionReference = `TXN-${txDateCompact}-${txSeq}`;
+    const transactionReference = generateTransactionReference(businessDate);
 
     const postedTx = await prisma.$transaction(async (tx) => {
       // 1. Credit customer account balance

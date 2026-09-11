@@ -1,6 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { execSync } from 'child_process';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 async function runRestore() {
   console.log('================================================================');
@@ -13,8 +17,6 @@ async function runRestore() {
   const targetBackupArg = args.find(a => !a.startsWith('--'));
 
   const backupsDir = path.join(__dirname, '..', 'backups');
-  const prismaDir = path.join(__dirname, '..', 'prisma');
-  const activeDbPath = path.join(prismaDir, 'dev.db');
 
   if (!fs.existsSync(backupsDir)) {
     console.error(`❌ Backups directory not found at: ${backupsDir}`);
@@ -44,15 +46,16 @@ async function runRestore() {
 
   const metaPath = path.join(backupsDir, selectedMetaFile);
   const metadata = JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
-  const backupDbPath = path.join(backupsDir, metadata.backupFile);
+  const backupFilePath = path.join(backupsDir, metadata.backupFile);
 
-  if (!fs.existsSync(backupDbPath)) {
-    console.error(`❌ Backup database binary missing: ${backupDbPath}`);
+  if (!fs.existsSync(backupFilePath)) {
+    console.error(`❌ Backup database archive missing: ${backupFilePath}`);
     process.exit(1);
   }
 
   console.log(`📋 Inspecting Backup Manifest: ${selectedMetaFile}`);
   console.log(`   - Backup ID: ${metadata.backupId}`);
+  console.log(`   - Database Type: ${metadata.databaseType || 'SQLite'}`);
   console.log(`   - Created At: ${metadata.createdAt}`);
   console.log(`   - Expected SHA-256: ${metadata.sha256Checksum}`);
   console.log(`   - File Size: ${metadata.sizeKb} KB`);
@@ -60,8 +63,8 @@ async function runRestore() {
   console.table(metadata.records);
 
   // Compute actual checksum
-  console.log(`\n⏳ Validating cryptographic integrity of backup binary...`);
-  const actualHash = crypto.createHash('sha256').update(fs.readFileSync(backupDbPath)).digest('hex');
+  console.log(`\n⏳ Validating cryptographic integrity of backup archive...`);
+  const actualHash = crypto.createHash('sha256').update(fs.readFileSync(backupFilePath)).digest('hex');
 
   if (actualHash !== metadata.sha256Checksum) {
     console.error(`❌ FATAL: Checksum mismatch!`);
@@ -82,27 +85,40 @@ async function runRestore() {
   }
 
   console.log('\n⚠️ LIVE RESTORE INITIATED (--execute flag provided)');
-  // Safety snapshot of current database
-  if (fs.existsSync(activeDbPath)) {
-    const preRestoreTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const safetyCopyPath = path.join(backupsDir, `cbs-prerestore-safety-${preRestoreTimestamp}.db`);
-    console.log(`🛡️ Creating safety snapshot of current active database: ${safetyCopyPath}`);
-    fs.copyFileSync(activeDbPath, safetyCopyPath);
-  }
 
-  console.log(`⏳ Overwriting active database with verified snapshot...`);
-  fs.copyFileSync(backupDbPath, activeDbPath);
+  const dbUrl = process.env.DATABASE_URL || '';
+  const isMySQL = dbUrl.startsWith('mysql://');
 
-  // Verify the newly written active DB matches
-  const restoredHash = crypto.createHash('sha256').update(fs.readFileSync(activeDbPath)).digest('hex');
-  if (restoredHash !== actualHash) {
-    console.error(`❌ FATAL: Restored active database verification failed!`);
-    process.exit(1);
+  if (isMySQL) {
+    const parsed = new URL(dbUrl);
+    const dbUser = decodeURIComponent(parsed.username);
+    const dbPass = decodeURIComponent(parsed.password);
+    const dbHost = parsed.hostname;
+    const dbPort = parsed.port || '3306';
+    const dbName = parsed.pathname.replace(/^\//, '');
+
+    const mysqlBin = 'C:\\Program Files\\MySQL\\MySQL Server 8.0\\bin\\mysql.exe';
+    console.log(`⏳ Restoring SQL dump into MySQL database [${dbName}]...`);
+    const cmd = `"${mysqlBin}" -h ${dbHost} -P ${dbPort} -u ${dbUser} -p${dbPass} ${dbName} < "${backupFilePath}"`;
+    execSync(cmd, { shell: 'cmd.exe' });
+  } else {
+    const prismaDir = path.join(__dirname, '..', 'prisma');
+    const activeDbPath = path.join(prismaDir, 'dev.db');
+
+    if (fs.existsSync(activeDbPath)) {
+      const preRestoreTimestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const safetyCopyPath = path.join(backupsDir, `cbs-prerestore-safety-${preRestoreTimestamp}.db`);
+      console.log(`🛡️ Creating safety snapshot of current active database: ${safetyCopyPath}`);
+      fs.copyFileSync(activeDbPath, safetyCopyPath);
+    }
+
+    console.log(`⏳ Overwriting active database with verified snapshot...`);
+    fs.copyFileSync(backupFilePath, activeDbPath);
   }
 
   console.log('\n================================================================');
   console.log('🎉 LIVE RESTORE COMPLETED SUCCESSFULLY!');
-  console.log(`✅ Active Database at ${activeDbPath} is restored to snapshot ${metadata.backupId}`);
+  console.log(`✅ Active Database is restored to snapshot ${metadata.backupId}`);
   console.log('================================================================\n');
 }
 

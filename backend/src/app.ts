@@ -83,7 +83,7 @@ app.get('/api/system/health-diagnostics', (req: Request, res: Response) => {
       rateLimitingActive: true
     },
     phasesCompleted: 8,
-    databaseType: 'SQLite (MySQL 8 Production Ready)'
+    databaseType: 'MySQL 8.0 Production Server (coop_bank_patsanstha)'
   });
 });
 

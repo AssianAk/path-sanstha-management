@@ -1,5 +1,5 @@
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -251,13 +251,13 @@ model KycDocument {
   customer            Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
   documentType        String
   documentNumber      String
-  documentUrl         String?
+  documentUrl         String?   @db.Text
   mimeType            String?   @default("application/pdf")
   version             Int       @default(1)
   status              String    @default("PENDING")
   verifiedByUserId    String?
   verifiedAt          DateTime?
-  verificationRemarks String?
+  verificationRemarks String?   @db.Text
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 }
@@ -267,14 +267,14 @@ model ApprovalQueue {
   module        String    // CUSTOMER, KYC, MEMBER, ACCOUNT, LOAN, TRANSACTION
   entityId      String
   actionType    String
-  payloadJson   String
+  payloadJson   String    @db.Text
   status        String    @default("PENDING")
   makerUserId   String
   maker         User      @relation("MakerRequests", fields: [makerUserId], references: [id])
-  makerRemarks  String?
+  makerRemarks  String?   @db.Text
   checkerUserId String?
   checker       User?     @relation("CheckerRequests", fields: [checkerUserId], references: [id])
-  checkerRemarks String?
+  checkerRemarks String?  @db.Text
   branchId      String
   branch        Branch    @relation(fields: [branchId], references: [id])
   createdAt     DateTime  @default(now())
@@ -624,7 +624,7 @@ model LoanNotice {
   dispatchedDate      String?
   deliveryStatus      String      @default("GENERATED") // GENERATED, DISPATCHED, DELIVERED, RETURNED, REPLIED
   deliveredDate       String?
-  content             String?
+  content             String?     @db.Text
   generatedByUserId   String
   generatedByUser     User        @relation(fields: [generatedByUserId], references: [id])
   businessDate        String      // YYYY-MM-DD
@@ -662,8 +662,8 @@ model AuditLog {
   action          String
   entityName      String
   entityId        String?
-  beforeStateJson String?
-  afterStateJson  String?
+  beforeStateJson String?  @db.Text
+  afterStateJson  String?  @db.Text
   ipAddress       String?
   userAgent       String?
   businessDate    String?
@@ -692,7 +692,7 @@ model NotificationLog {
   category        String   // TRANSACTION, ALERT, REMINDER, NOTICE, OTP
   templateCode    String
   title           String
-  message         String
+  message         String   @db.Text
   status          String   @default("SENT") // QUEUED, SENT, DELIVERED, FAILED
   deliveryRef     String?
   customerId      String?
@@ -740,8 +740,8 @@ model StandingInstructionLog {
 model DigitalPaymentRequest {
   id                          String    @id @default(uuid())
   paymentReference            String    @unique // PAY-YYYY-XXXXX
-  upiIntentUrl                String
-  qrData                      String
+  upiIntentUrl                String    @db.Text
+  qrData                      String    @db.Text
   customerId                  String?
   accountNumber               String?
   loanAccountNumber           String?
