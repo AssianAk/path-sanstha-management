@@ -13,6 +13,7 @@ import { authorizeRoles } from '../../middleware/rbac';
 const router = Router();
 
 router.use(authenticate);
+router.use(authorizeRoles('SUPER_ADMIN', 'HO_ADMIN', 'BRANCH_MANAGER', 'ACCOUNTANT', 'AUDITOR'));
 
 // 1. Chart of Accounts (COA) Directory
 router.get('/accounts', getChartOfAccounts);

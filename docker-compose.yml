@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: coop-cbs-backend
+    restart: unless-stopped
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/prisma/dev.db
+      - JWT_SECRET=cbs_production_secure_jwt_token_2026_salt
+      - JWT_EXPIRY=8h
+    volumes:
+      - cbs-db-data:/app/prisma
+      - cbs-backup-vault:/app/backups
+    ports:
+      - "5000:5000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - cbs-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: coop-cbs-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - cbs-network
+
+volumes:
+  cbs-db-data:
+    name: coop-cbs-db-data
+  cbs-backup-vault:
+    name: coop-cbs-backup-vault
+
+networks:
+  cbs-network:
+    driver: bridge
+    name: coop-cbs-internal-network

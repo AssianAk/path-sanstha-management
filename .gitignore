@@ -14,12 +14,14 @@ out/
 .env.production
 .env.test
 
-# Database
+# Database & Backups
 *.db
 *.db-journal
 *.db-wal
 *.sqlite
 *.sqlite3
+backend/backups/*.json
+backend/backups/*.db
 
 # Logs
 logs/
