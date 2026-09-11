@@ -22,7 +22,12 @@ export const Login: React.FC = () => {
       await login(username, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || (language === 'mr' ? 'लॉगिन अयशस्वी झाले. कृपया क्रेडेंशियल्स तपासा.' : 'Login failed. Please check your credentials.'));
+      const fallbackErr = language === 'mr'
+        ? 'लॉगिन अयशस्वी झाले. कृपया क्रेडेंशियल्स तपासा.'
+        : language === 'hi'
+        ? 'लॉगिन विफल रहा। कृपया क्रेडेंशियल्स जांचें।'
+        : 'Login failed. Please check your credentials.';
+      setError(err.response?.data?.message || fallbackErr);
     } finally {
       setIsSubmitting(false);
     }
@@ -36,12 +41,12 @@ export const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 relative">
-      {/* Top Right Floating Language Switcher */}
+      {/* Top Right Floating Language Switcher: English | हिंदी | मराठी */}
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 flex items-center bg-slate-800/90 backdrop-blur-md p-1 rounded-xl border border-slate-700 shadow-lg">
         <button
           type="button"
           onClick={() => setLanguage('en')}
-          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+          className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
             language === 'en'
               ? 'bg-brand-600 text-white shadow-xs'
               : 'text-slate-300 hover:text-white'
@@ -51,8 +56,19 @@ export const Login: React.FC = () => {
         </button>
         <button
           type="button"
+          onClick={() => setLanguage('hi')}
+          className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+            language === 'hi'
+              ? 'bg-brand-600 text-white shadow-xs'
+              : 'text-slate-300 hover:text-white'
+          }`}
+        >
+          हिंदी
+        </button>
+        <button
+          type="button"
           onClick={() => setLanguage('mr')}
-          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+          className={`px-2 sm:px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
             language === 'mr'
               ? 'bg-brand-600 text-white shadow-xs'
               : 'text-slate-300 hover:text-white'
@@ -142,8 +158,12 @@ export const Login: React.FC = () => {
                 onClick={() => setDemoCredentials('maker_pune', 'Maker@123')}
                 className="p-2 border border-emerald-200 bg-emerald-50/60 rounded-lg text-left hover:bg-emerald-100/60 transition-colors text-emerald-900"
               >
-                <div className="font-semibold text-emerald-800">{language === 'mr' ? 'मेकर / लिपिक' : 'Maker / Operator'}</div>
-                <div className="text-[10px] text-emerald-600">{language === 'mr' ? 'नोंदणी व दस्तऐवज' : 'Enter Records & Docs'}</div>
+                <div className="font-semibold text-emerald-800">
+                  {language === 'mr' ? 'मेकर / लिपिक' : language === 'hi' ? 'मेकर / लिपिक' : 'Maker / Operator'}
+                </div>
+                <div className="text-[10px] text-emerald-600">
+                  {language === 'mr' ? 'नोंदणी व दस्तऐवज' : language === 'hi' ? 'नामांकन व प्रलेख' : 'Enter Records & Docs'}
+                </div>
               </button>
 
               <button
@@ -151,8 +171,12 @@ export const Login: React.FC = () => {
                 onClick={() => setDemoCredentials('checker_pune', 'Checker@123')}
                 className="p-2 border border-indigo-200 bg-indigo-50/60 rounded-lg text-left hover:bg-indigo-100/60 transition-colors text-indigo-900"
               >
-                <div className="font-semibold text-indigo-800">{language === 'mr' ? 'चेकर / अधिकारी' : 'Checker / Authorizer'}</div>
-                <div className="text-[10px] text-indigo-600">{language === 'mr' ? 'केवायसी व मंजुरी' : 'Approve KYC & Queues'}</div>
+                <div className="font-semibold text-indigo-800">
+                  {language === 'mr' ? 'चेकर / अधिकारी' : language === 'hi' ? 'चेकर / अधिकारी' : 'Checker / Authorizer'}
+                </div>
+                <div className="text-[10px] text-indigo-600">
+                  {language === 'mr' ? 'केवायसी व मंजुरी' : language === 'hi' ? 'केवाईसी व अनुमोदन' : 'Approve KYC & Queues'}
+                </div>
               </button>
 
               <button
@@ -160,8 +184,12 @@ export const Login: React.FC = () => {
                 onClick={() => setDemoCredentials('bm_pune', 'Manager@123')}
                 className="p-2 border border-amber-200 bg-amber-50/60 rounded-lg text-left hover:bg-amber-100/60 transition-colors text-amber-900"
               >
-                <div className="font-semibold text-amber-800">{language === 'mr' ? 'शाखा व्यवस्थापक' : 'Branch Manager'}</div>
-                <div className="text-[10px] text-amber-600">{language === 'mr' ? 'व्यवहार तारीख व देखरेख' : 'Business Date & Branch'}</div>
+                <div className="font-semibold text-amber-800">
+                  {language === 'mr' ? 'शाखा व्यवस्थापक' : language === 'hi' ? 'शाखा प्रबंधक' : 'Branch Manager'}
+                </div>
+                <div className="text-[10px] text-amber-600">
+                  {language === 'mr' ? 'व्यवहार तारीख व देखरेख' : language === 'hi' ? 'कार्य दिवस व शाखा' : 'Business Date & Branch'}
+                </div>
               </button>
 
               <button
@@ -169,8 +197,12 @@ export const Login: React.FC = () => {
                 onClick={() => setDemoCredentials('superadmin', 'Admin@123')}
                 className="p-2 border border-rose-200 bg-rose-50/60 rounded-lg text-left hover:bg-rose-100/60 transition-colors text-rose-900"
               >
-                <div className="font-semibold text-rose-800">{language === 'mr' ? 'मुख्य प्रशासक' : 'Head Office Admin'}</div>
-                <div className="text-[10px] text-rose-600">{language === 'mr' ? 'सर्व प्रणाली नियंत्रणे' : 'Full CBS Controls'}</div>
+                <div className="font-semibold text-rose-800">
+                  {language === 'mr' ? 'मुख्य प्रशासक' : language === 'hi' ? 'मुख्य प्रशासक' : 'Head Office Admin'}
+                </div>
+                <div className="text-[10px] text-rose-600">
+                  {language === 'mr' ? 'सर्व प्रणाली नियंत्रणे' : language === 'hi' ? 'सभी सिस्टम नियंत्रण' : 'Full CBS Controls'}
+                </div>
               </button>
             </div>
           </div>

@@ -60,7 +60,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
             <button
               type="button"
               onClick={() => setLanguage('en')}
-              className={`px-2 py-1 rounded-md text-[11px] sm:text-xs font-semibold transition-all ${
+              className={`px-1.5 sm:px-2 py-1 rounded-md text-[10px] sm:text-xs font-semibold transition-all ${
                 language === 'en'
                   ? 'bg-brand-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
@@ -71,8 +71,20 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
             </button>
             <button
               type="button"
+              onClick={() => setLanguage('hi')}
+              className={`px-1.5 sm:px-2 py-1 rounded-md text-[10px] sm:text-xs font-semibold transition-all ${
+                language === 'hi'
+                  ? 'bg-brand-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+              }`}
+              title="हिंदी में बदलें"
+            >
+              हिंदी
+            </button>
+            <button
+              type="button"
               onClick={() => setLanguage('mr')}
-              className={`px-2 py-1 rounded-md text-[11px] sm:text-xs font-semibold transition-all ${
+              className={`px-1.5 sm:px-2 py-1 rounded-md text-[10px] sm:text-xs font-semibold transition-all ${
                 language === 'mr'
                   ? 'bg-brand-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200'

@@ -24,6 +24,12 @@ export const Dashboard: React.FC = () => {
   const { user, businessDate } = useAuth();
   const { language, t } = useLanguage();
 
+  const localize = (enText: string, mrText: string, hiText: string) => {
+    if (language === 'mr') return mrText;
+    if (language === 'hi') return hiText;
+    return enText;
+  };
+
   const [stats, setStats] = useState({
     totalCustomers: 0,
     totalMembers: 0,
@@ -92,14 +98,14 @@ export const Dashboard: React.FC = () => {
         <div>
           <div className="inline-flex items-center space-x-2 bg-amber-500/20 text-amber-300 text-xs px-3 py-1 rounded-full font-medium mb-2 border border-amber-400/30">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-            <span>{language === 'mr' ? 'सर्व ८ टप्पे सक्रिय • उत्पादन सिद्ध' : 'All 8 Phases Active • Production Ready'}</span>
+            <span>{localize('All 8 Phases Active • Production Ready', 'सर्व ८ टप्पे सक्रिय • उत्पादन सिद्ध', 'सभी 8 चरण सक्रिय • उत्पादन तैयार')}</span>
           </div>
           <h2 className="text-lg sm:text-xl font-bold tracking-tight">
-            {language === 'mr' ? 'स्वागत आहे' : 'Welcome'}, {user?.fullName}
+            {localize('Welcome', 'स्वागत आहे', 'स्वागत है')}, {user?.fullName}
           </h2>
           <p className="text-xs text-slate-300 mt-1 max-w-xl">
-            {language === 'mr' ? 'शाखा:' : 'Branch:'} <span className="font-semibold text-white">{user?.branchName || t('institution.headOffice')}</span> ({user?.branchCode || 'BR001'}).{' '}
-            {language === 'mr' ? 'सक्रिय कामकाज तारीख:' : 'Active business date is'}{' '}
+            {localize('Branch:', 'शाखा:', 'शाखा:')} <span className="font-semibold text-white">{user?.branchName || t('institution.headOffice')}</span> ({user?.branchCode || 'BR001'}).{' '}
+            {localize('Active business date is', 'सक्रिय कामकाज तारीख:', 'सक्रिय कार्य दिवस तिथि:')}{' '}
             <span className="font-mono text-amber-300 font-semibold">{businessDate}</span>.
           </p>
         </div>
@@ -110,35 +116,35 @@ export const Dashboard: React.FC = () => {
             className="px-3 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center space-x-1.5"
           >
             <CreditCard className="w-3.5 h-3.5 shrink-0" />
-            <span>{language === 'mr' ? 'खाते उघडा' : 'Open CASA'}</span>
+            <span>{localize('Open CASA', 'खाते उघडा', 'खाता खोलें')}</span>
           </Link>
           <Link
             to="/teller"
             className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center space-x-1.5"
           >
             <Banknote className="w-3.5 h-3.5 shrink-0" />
-            <span>{language === 'mr' ? 'रोख काऊंटर' : 'Cash Counter'}</span>
+            <span>{localize('Cash Counter', 'रोख काऊंटर', 'रोकड़ काउंटर')}</span>
           </Link>
           <Link
             to="/loans"
             className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center space-x-1.5"
           >
             <Award className="w-3.5 h-3.5 shrink-0" />
-            <span>{language === 'mr' ? 'कर्ज मंजुरी' : 'Loan Origination'}</span>
+            <span>{localize('Loan Origination', 'कर्ज मंजुरी', 'ऋण स्वीकृति')}</span>
           </Link>
           <Link
             to="/collections"
             className="px-3 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center space-x-1.5"
           >
             <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
-            <span>{language === 'mr' ? 'वसुली कक्ष' : 'NPA Desk'}</span>
+            <span>{localize('NPA Desk', 'वसुली कक्ष', 'वसूली डेस्क')}</span>
           </Link>
           <Link
             to="/digital"
             className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center space-x-1.5"
           >
             <Smartphone className="w-3.5 h-3.5 shrink-0" />
-            <span>{language === 'mr' ? 'डिजिटल यूपीआय' : 'Digital UPI'}</span>
+            <span>{localize('Digital UPI', 'डिजिटल यूपीआय', 'डिजिटल यूपीआई')}</span>
           </Link>
         </div>
       </div>
@@ -155,7 +161,7 @@ export const Dashboard: React.FC = () => {
               ₹{stats.totalLoanAssetOutstanding.toLocaleString()}
             </h3>
             <span className="text-[11px] text-amber-700 font-medium">
-              {stats.activeLoansCount} {language === 'mr' ? 'सक्रिय कर्ज खाती' : 'Active Loan Contracts'}
+              {stats.activeLoansCount} {localize('Active Loan Contracts', 'सक्रिय कर्ज खाती', 'सक्रिय ऋण अनुबंध')}
             </span>
           </div>
           <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
@@ -173,7 +179,7 @@ export const Dashboard: React.FC = () => {
               ₹{stats.totalDepositLiability.toLocaleString()}
             </h3>
             <span className="text-[11px] text-brand-600 font-medium">
-              {stats.totalAccounts} {language === 'mr' ? 'ठेवी व चालू खाती' : 'CASA & Deposit Accounts'}
+              {stats.totalAccounts} {localize('CASA & Deposit Accounts', 'ठेवी व चालू खाती', 'कासा एवं जमा खाते')}
             </span>
           </div>
           <div className="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
@@ -191,7 +197,7 @@ export const Dashboard: React.FC = () => {
               ₹{stats.tillCash.toLocaleString()}
             </h3>
             <span className="text-[11px] text-emerald-600 font-medium">
-              {language === 'mr' ? 'तिजोरी व खजिनदार रोख' : 'Vault & Teller Till'}
+              {localize('Vault & Teller Till', 'तिजोरी व खजिनदार रोख', 'तिजोरी एवं काउंटर रोकड़')}
             </span>
           </div>
           <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
@@ -206,10 +212,10 @@ export const Dashboard: React.FC = () => {
               {t('dashboard.totalMembers')}
             </p>
             <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1 font-mono">
-              {stats.totalMembers} <span className="text-xs text-slate-400 font-normal font-sans">/ {stats.totalCustomers} {language === 'mr' ? 'एकूण' : 'total'}</span>
+              {stats.totalMembers} <span className="text-xs text-slate-400 font-normal font-sans">/ {stats.totalCustomers} {localize('total', 'एकूण', 'कुल')}</span>
             </h3>
             <span className="text-[11px] text-emerald-600 font-medium">
-              {language === 'mr' ? 'मतदान हक्क असलेले भागधारक' : 'Shareholder Voting Members'}
+              {localize('Shareholder Voting Members', 'मतदान हक्क असलेले भागधारक', 'मतदान अधिकार युक्त शेयरधारक सदस्य')}
             </span>
           </div>
           <div className="w-11 h-11 rounded-xl bg-sky-50 text-brand-600 flex items-center justify-center shrink-0">
@@ -242,7 +248,11 @@ export const Dashboard: React.FC = () => {
             {pendingQueue.length === 0 ? (
               <div className="p-8 text-center text-slate-500 text-xs">
                 <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                {language === 'mr' ? 'मंजुरी रांगेत कोणतीही विनंती प्रलंबित नाही. सर्व नोंदी तपासल्या गेल्या आहेत.' : 'No pending items in approval queue. All master and transaction requests are verified.'}
+                {localize(
+                  'No pending items in approval queue. All master and transaction requests are verified.',
+                  'मंजुरी रांगेत कोणतीही विनंती प्रलंबित नाही. सर्व नोंदी तपासल्या गेल्या आहेत.',
+                  'अनुमोदन कतार में कोई अनुरोध लंबित नहीं है। सभी अनुरोध सत्यापित हैं।'
+                )}
               </div>
             ) : (
               pendingQueue.map((item) => {
@@ -256,12 +266,12 @@ export const Dashboard: React.FC = () => {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                         <span className="text-xs font-bold text-slate-900 truncate">
-                          {payload.customerName || (language === 'mr' ? 'ग्राहक नोंद' : 'Customer Master')}
+                          {payload.customerName || localize('Customer Master', 'ग्राहक नोंद', 'ग्राहक मास्टर')}
                         </span>
                         <MakerCheckerBadge status={item.status} />
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1 truncate">
-                        {language === 'mr' ? 'विभाग:' : 'Module:'} <span className="font-semibold text-slate-700">{item.module}</span> • {language === 'mr' ? 'कृती:' : 'Action:'} <span className="font-mono text-slate-700">{item.actionType}</span>
+                        {localize('Module:', 'विभाग:', 'मॉड्यूल:')} <span className="font-semibold text-slate-700">{item.module}</span> • {localize('Action:', 'कृती:', 'क्रिया:')} <span className="font-mono text-slate-700">{item.actionType}</span>
                       </p>
                     </div>
 
@@ -299,7 +309,11 @@ export const Dashboard: React.FC = () => {
           <div className="divide-y divide-slate-100">
             {recentAudits.length === 0 ? (
               <div className="p-8 text-center text-slate-500 text-xs">
-                {language === 'mr' ? 'कोणत्याही ऑडिट नोंदी आढळल्या नाहीत.' : 'No recent audit events found.'}
+                {localize(
+                  'No recent audit events found.',
+                  'कोणत्याही ऑडिट नोंदी आढळल्या नाहीत.',
+                  'कोई हालिया ऑडिट रिकॉर्ड नहीं मिला।'
+                )}
               </div>
             ) : (
               recentAudits.map((log) => (
@@ -322,7 +336,7 @@ export const Dashboard: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5 truncate">
-                      {language === 'mr' ? 'वापरकर्ता:' : 'Actor:'} <span className="font-medium text-slate-700">{log.username}</span> ({log.userRole})
+                      {localize('Actor:', 'वापरकर्ता:', 'प्रयोक्ता:')} <span className="font-medium text-slate-700">{log.username}</span> ({log.userRole})
                     </p>
                   </div>
                 </div>
