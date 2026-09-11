@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { Header } from './components/Header';
 import { Sidebar } from './components/Sidebar';
 import { Login } from './pages/Login';
@@ -22,7 +23,9 @@ import api from './api/client';
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
+  const { t } = useLanguage();
   const [pendingCount, setPendingCount] = useState(0);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -38,7 +41,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-900 text-white font-medium">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mr-3"></div>
-        Loading Core Banking System...
+        {t('common.loading', 'Loading Core Banking System...')}
       </div>
     );
   }
@@ -49,10 +52,14 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div className="flex h-screen bg-slate-100/70 overflow-hidden">
-      <Sidebar pendingApprovalsCount={pendingCount} />
+      <Sidebar
+        pendingApprovalsCount={pendingCount}
+        isOpenMobile={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
+      />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+        <Header onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)} />
+        <main className="flex-1 overflow-y-auto p-3 sm:p-5 md:p-6 lg:p-8">
           {children}
         </main>
       </div>
@@ -62,7 +69,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 export const App: React.FC = () => {
   return (
-    <AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -196,6 +204,7 @@ export const App: React.FC = () => {
         </Routes>
       </BrowserRouter>
     </AuthProvider>
+    </LanguageProvider>
   );
 };
 
