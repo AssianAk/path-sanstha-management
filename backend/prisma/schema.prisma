@@ -13,7 +13,7 @@ generator client {
 
 model Role {
   id          String           @id @default(uuid())
-  code        String           @unique // SUPER_ADMIN, HO_ADMIN, BRANCH_MANAGER, MAKER, CHECKER, TELLER, etc.
+  code        String           @unique
   name        String
   description String?
   isSystem    Boolean          @default(true)
@@ -56,14 +56,15 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  createdCustomers Customer[]       @relation("CustomerCreatedBy")
-  approvedCustomers Customer[]      @relation("CustomerApprovedBy")
-  makerRequests    ApprovalQueue[]  @relation("MakerRequests")
-  checkerRequests  ApprovalQueue[]  @relation("CheckerRequests")
-  assignedCounters BranchCounter[]
-  tellerTills      TellerTill[]
-  makerTransactions Transaction[]   @relation("TransactionMaker")
-  checkerTransactions Transaction[] @relation("TransactionChecker")
+  createdCustomers    Customer[]        @relation("CustomerCreatedBy")
+  approvedCustomers   Customer[]        @relation("CustomerApprovedBy")
+  makerRequests       ApprovalQueue[]   @relation("MakerRequests")
+  checkerRequests     ApprovalQueue[]   @relation("CheckerRequests")
+  assignedCounters    BranchCounter[]
+  tellerTills         TellerTill[]
+  makerTransactions   Transaction[]     @relation("TransactionMaker")
+  checkerTransactions Transaction[]   @relation("TransactionChecker")
+  sanctionedLoans     LoanApplication[] @relation("LoanSanctionedBy")
 }
 
 // -------------------------------------------------------------
@@ -86,30 +87,32 @@ model Organization {
 }
 
 model Branch {
-  id             String          @id @default(uuid())
-  organizationId String
-  organization   Organization    @relation(fields: [organizationId], references: [id])
-  code           String          @unique
-  name           String
-  ifscCode       String?
-  micrCode       String?
-  address        String
-  city           String
-  state          String
-  pincode        String
-  phone          String
-  email          String
-  isActive       Boolean         @default(true)
-  users          User[]
-  counters       BranchCounter[]
-  businessDates  BusinessDate[]
-  customers      Customer[]
-  approvalQueues ApprovalQueue[]
-  accounts       Account[]
-  tellerTills    TellerTill[]
-  transactions   Transaction[]
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id               String            @id @default(uuid())
+  organizationId   String
+  organization     Organization      @relation(fields: [organizationId], references: [id])
+  code             String            @unique
+  name             String
+  ifscCode         String?
+  micrCode         String?
+  address          String
+  city             String
+  state            String
+  pincode          String
+  phone            String
+  email            String
+  isActive         Boolean           @default(true)
+  users            User[]
+  counters         BranchCounter[]
+  businessDates    BusinessDate[]
+  customers        Customer[]
+  approvalQueues   ApprovalQueue[]
+  accounts         Account[]
+  tellerTills      TellerTill[]
+  transactions     Transaction[]
+  loanApplications LoanApplication[]
+  loanAccounts     LoanAccount[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 }
 
 model BranchCounter {
@@ -182,6 +185,8 @@ model Customer {
   kycDocuments       KycDocument[]
   memberShares       MemberShare[]
   accounts           Account[]
+  loanApplications   LoanApplication[]
+  loanAccounts       LoanAccount[]
   
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -226,7 +231,7 @@ model MemberShare {
   distinctFrom           Int
   distinctTo             Int
   totalShares            Int
-  faceValue              Float    @default(10.0)
+  faceValue              Float    @default(100.0)
   totalAmount            Float
   issueDate              DateTime @default(now())
   status                 String   @default("ACTIVE")
@@ -251,7 +256,7 @@ model KycDocument {
 
 model ApprovalQueue {
   id            String    @id @default(uuid())
-  module        String    // CUSTOMER, KYC, MEMBER, ACCOUNT, TRANSACTION
+  module        String    // CUSTOMER, KYC, MEMBER, ACCOUNT, LOAN, TRANSACTION
   entityId      String
   actionType    String
   payloadJson   String
@@ -269,23 +274,23 @@ model ApprovalQueue {
 }
 
 // -------------------------------------------------------------
-// 6. PHASE 2: PRODUCTS, CASA & DEPOSITS (SECTIONS 6 & 29)
+// 4. PHASE 2: PRODUCTS, CASA & DEPOSITS
 // -------------------------------------------------------------
 
 model Product {
   id                    String    @id @default(uuid())
-  code                  String    @unique // e.g. SB001, CA001, FD001, RD001
+  code                  String    @unique
   name                  String
-  category              String    // SAVINGS, CURRENT, FIXED_DEPOSIT, RECURRING_DEPOSIT
+  category              String
   description           String?
   currency              String    @default("INR")
   minBalance            Float     @default(500.0)
-  interestRate          Float     @default(0.0) // Annual interest rate percentage
-  compoundingFrequency  String    @default("QUARTERLY") // MONTHLY, QUARTERLY, HALF_YEARLY, YEARLY
+  interestRate          Float     @default(0.0)
+  compoundingFrequency  String    @default("QUARTERLY")
   tenureMinMonths       Int?      @default(0)
   tenureMaxMonths       Int?      @default(120)
-  prematurePenaltyRate  Float?    @default(1.0) // Penalty deducted if broken early
-  glAccountCode         String    // e.g. GL-2001 (Customer Deposit Liability)
+  prematurePenaltyRate  Float?    @default(1.0)
+  glAccountCode         String
   isActive              Boolean   @default(true)
   accounts              Account[]
   createdAt             DateTime  @default(now())
@@ -294,7 +299,7 @@ model Product {
 
 model Account {
   id                    String              @id @default(uuid())
-  accountNumber         String              @unique // SB-YYYY-XXXXX, CA-..., FD-..., RD-...
+  accountNumber         String              @unique
   customerId            String
   customer              Customer            @relation(fields: [customerId], references: [id])
   productId             String
@@ -305,7 +310,7 @@ model Account {
   ledgerBalance         Float               @default(0.0)
   availableBalance      Float               @default(0.0)
   lienAmount            Float               @default(0.0)
-  status                String              @default("ACTIVE") // ACTIVE, DORMANT, FROZEN, CLOSED
+  status                String              @default("ACTIVE")
   openedDate            DateTime            @default(now())
   closedDate            DateTime?
   interestAccrued       Float               @default(0.0)
@@ -315,6 +320,7 @@ model Account {
   sourceTransactions    Transaction[]       @relation("SourceAccount")
   destTransactions      Transaction[]       @relation("DestinationAccount")
   transactionLines      TransactionLine[]
+  disbursedLoans        LoanAccount[]       @relation("LoanSavingsCredit")
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 }
@@ -326,17 +332,17 @@ model TermDepositDetail {
   depositAmount      Float
   tenureMonths       Int
   interestRate       Float
-  maturityDate       String   // YYYY-MM-DD
+  maturityDate       String
   maturityAmount     Float
-  installmentAmount  Float?   // For Recurring Deposits
-  frequency          String?  @default("MONTHLY") // For RD
-  payoutType         String   @default("ON_MATURITY") // ON_MATURITY, MONTHLY_INTEREST, QUARTERLY_INTEREST
+  installmentAmount  Float?
+  frequency          String?  @default("MONTHLY")
+  payoutType         String   @default("ON_MATURITY")
   autoRenewal        Boolean  @default(false)
   createdAt          DateTime @default(now())
 }
 
 // -------------------------------------------------------------
-// 7. PHASE 2: TELLER, CASH & TRANSACTION POSTING ENGINE (SECTIONS 7, 8, 21)
+// 5. PHASE 2: TELLER & CASH OPERATIONS
 // -------------------------------------------------------------
 
 model TellerTill {
@@ -347,14 +353,14 @@ model TellerTill {
   user                  User              @relation(fields: [userId], references: [id])
   counterId             String?
   counter               BranchCounter?    @relation(fields: [counterId], references: [id])
-  businessDate          String            // YYYY-MM-DD
+  businessDate          String
   openingBalance        Float             @default(0.0)
   totalCashReceived     Float             @default(0.0)
   totalCashPaid         Float             @default(0.0)
   currentBalance        Float             @default(0.0)
   closingBalance        Float?
   shortageExcess        Float?            @default(0.0)
-  status                String            @default("OPEN") // OPEN, BALANCED, CLOSED
+  status                String            @default("OPEN")
   openedAt              DateTime          @default(now())
   closedAt              DateTime?
   supervisorApprovedBy  String?
@@ -363,12 +369,12 @@ model TellerTill {
 
 model Transaction {
   id                    String              @id @default(uuid())
-  transactionReference  String              @unique // TXN-YYYYMMDD-XXXXX
-  transactionType       String              // CASH_DEPOSIT, CASH_WITHDRAWAL, INTERNAL_TRANSFER, INTEREST_CREDIT
-  channel               String              @default("BRANCH_TELLER") // BRANCH_TELLER, ONLINE, SYSTEM
+  transactionReference  String              @unique
+  transactionType       String              // CASH_DEPOSIT, CASH_WITHDRAWAL, INTERNAL_TRANSFER, LOAN_DISBURSEMENT, LOAN_REPAYMENT
+  channel               String              @default("BRANCH_TELLER")
   branchId              String
   branch                Branch              @relation(fields: [branchId], references: [id])
-  businessDate          String              // YYYY-MM-DD
+  businessDate          String
   sourceAccountId       String?
   sourceAccount         Account?            @relation("SourceAccount", fields: [sourceAccountId], references: [id])
   destinationAccountId  String?
@@ -376,7 +382,7 @@ model Transaction {
   amount                Float
   currency              String              @default("INR")
   narration             String
-  status                String              @default("POSTED") // POSTED, REVERSED
+  status                String              @default("POSTED")
   makerUserId           String
   makerUser             User                @relation("TransactionMaker", fields: [makerUserId], references: [id])
   checkerUserId         String?
@@ -385,6 +391,7 @@ model Transaction {
   tellerTill            TellerTill?         @relation(fields: [tellerTillId], references: [id])
   denomination          CashDenomination?
   journalLines          TransactionLine[]
+  loanAllocations       LoanPaymentAllocation[]
   createdAt             DateTime            @default(now())
 }
 
@@ -394,11 +401,11 @@ model TransactionLine {
   transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   accountId       String?
   account         Account?    @relation(fields: [accountId], references: [id])
-  glAccountCode   String      // e.g. GL-1001 (Cash In Hand), GL-2001 (Customer Deposit Liability)
+  glAccountCode   String
   glAccountName   String
   entryType       String      // DEBIT, CREDIT
   amount          Float
-  businessDate    String      // YYYY-MM-DD
+  businessDate    String
   createdAt       DateTime    @default(now())
 }
 
@@ -418,7 +425,152 @@ model CashDenomination {
 }
 
 // -------------------------------------------------------------
-// 8. AUDIT TRAIL & SYSTEM CONFIGURATION
+// 6. PHASE 3: LOANS & ADVANCES (SECTIONS 10, 11, 20)
+// -------------------------------------------------------------
+
+model LoanProduct {
+  id                    String            @id @default(uuid())
+  code                  String            @unique // PL001, GL001, BL001, VL001, AG001
+  name                  String
+  category              String            // PERSONAL, GOLD, BUSINESS, VEHICLE, MORTGAGE, AGRICULTURAL
+  description           String?
+  interestRate          Float             // Annual rate percentage (e.g. 11.5%)
+  interestType          String            @default("REDUCING_BALANCE") // REDUCING_BALANCE, FLAT
+  minAmount             Float             @default(10000.0)
+  maxAmount             Float             @default(5000000.0)
+  minTenureMonths       Int               @default(6)
+  maxTenureMonths       Int               @default(84)
+  processingFeePercent  Float             @default(1.0)
+  glAssetCode           String            @default("GL-1002") // Loan Principal Asset
+  glIncomeCode          String            @default("GL-4001") // Interest Income
+  isActive              Boolean           @default(true)
+  applications          LoanApplication[]
+  loanAccounts          LoanAccount[]
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+}
+
+model LoanApplication {
+  id                    String            @id @default(uuid())
+  applicationNumber     String            @unique // LA-YYYY-XXXXX
+  customerId            String
+  customer              Customer          @relation(fields: [customerId], references: [id])
+  loanProductId         String
+  loanProduct           LoanProduct       @relation(fields: [loanProductId], references: [id])
+  branchId              String
+  branch                Branch            @relation(fields: [branchId], references: [id])
+  requestedAmount       Float
+  requestedTenureMonths Int
+  purpose               String
+  status                String            @default("SUBMITTED") // SUBMITTED, APPRAISED, SANCTIONED, REJECTED, DISBURSED
+  riskGrade             String?           // GRADE_A, GRADE_B, GRADE_C
+  appraisalNotes        String?
+  sanctionedAmount      Float?
+  sanctionedTenureMonths Int?
+  interestRate          Float?
+  sanctionedAt          DateTime?
+  sanctionedByUserId    String?
+  sanctionedBy          User?             @relation("LoanSanctionedBy", fields: [sanctionedByUserId], references: [id])
+  rejectionReason       String?
+  guarantors            LoanGuarantor[]
+  collaterals           LoanCollateral[]
+  loanAccount           LoanAccount?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+}
+
+model LoanGuarantor {
+  id                String          @id @default(uuid())
+  loanApplicationId String
+  loanApplication   LoanApplication @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+  name              String
+  relationship      String
+  phone             String
+  pan               String?
+  occupation        String?
+  netWorth          Float?          @default(0.0)
+  address           String?
+}
+
+model LoanCollateral {
+  id                String          @id @default(uuid())
+  loanApplicationId String
+  loanApplication   LoanApplication @relation(fields: [loanApplicationId], references: [id], onDelete: Cascade)
+  collateralType    String          // PROPERTY, GOLD, VEHICLE, FD_LIEN, SHARES
+  description       String
+  marketValue       Float
+  assessedValue     Float
+  documentRef       String?
+}
+
+model LoanAccount {
+  id                    String              @id @default(uuid())
+  loanAccountNumber     String              @unique // LN-YYYY-XXXXX
+  loanApplicationId     String              @unique
+  loanApplication       LoanApplication     @relation(fields: [loanApplicationId], references: [id])
+  customerId            String
+  customer              Customer            @relation(fields: [customerId], references: [id])
+  loanProductId         String
+  loanProduct           LoanProduct         @relation(fields: [loanProductId], references: [id])
+  branchId              String
+  branch                Branch              @relation(fields: [branchId], references: [id])
+  sanctionedAmount      Float
+  disbursedAmount       Float
+  principalOutstanding  Float
+  interestRate          Float
+  interestType          String              @default("REDUCING_BALANCE")
+  tenureMonths          Int
+  emiAmount             Float
+  disbursementDate      String              // YYYY-MM-DD
+  firstEmiDate          String              // YYYY-MM-DD
+  maturityDate          String              // YYYY-MM-DD
+  status                String              @default("ACTIVE") // ACTIVE, OVERDUE, NPA, CLOSED
+  savingsAccountId      String?
+  savingsAccount        Account?            @relation("LoanSavingsCredit", fields: [savingsAccountId], references: [id])
+  totalInterestPaid     Float               @default(0.0)
+  totalPrincipalPaid    Float               @default(0.0)
+  totalPenaltyPaid      Float               @default(0.0)
+  installments          LoanInstallment[]
+  allocations           LoanPaymentAllocation[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+}
+
+model LoanInstallment {
+  id                    String          @id @default(uuid())
+  loanAccountId         String
+  loanAccount           LoanAccount     @relation(fields: [loanAccountId], references: [id], onDelete: Cascade)
+  installmentNumber     Int
+  dueDate               String          // YYYY-MM-DD
+  principalDue          Float
+  interestDue           Float
+  totalEmi              Float
+  principalPaid         Float           @default(0.0)
+  interestPaid          Float           @default(0.0)
+  penaltyDue            Float           @default(0.0)
+  penaltyPaid           Float           @default(0.0)
+  status                String          @default("PENDING") // PENDING, PARTIALLY_PAID, PAID, OVERDUE
+  paidDate              String?
+}
+
+model LoanPaymentAllocation {
+  id                      String      @id @default(uuid())
+  transactionId           String
+  transaction             Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  loanAccountId           String
+  loanAccount             LoanAccount @relation(fields: [loanAccountId], references: [id], onDelete: Cascade)
+  installmentId           String?
+  totalAmount             Float
+  allocatedCharges        Float       @default(0.0)
+  allocatedPenalty        Float       @default(0.0)
+  allocatedOverdueInterest Float      @default(0.0)
+  allocatedCurrentInterest Float      @default(0.0)
+  allocatedPrincipal      Float       @default(0.0)
+  createdAt               DateTime    @default(now())
+}
+
+// -------------------------------------------------------------
+// 7. AUDIT TRAIL & SYSTEM CONFIGURATION
 // -------------------------------------------------------------
 
 model AuditLog {

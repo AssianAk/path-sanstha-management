@@ -11,6 +11,7 @@ import productRoutes from './modules/products/product.routes';
 import accountRoutes from './modules/accounts/account.routes';
 import tellerRoutes from './modules/teller/teller.routes';
 import transferRoutes from './modules/transfers/transfer.routes';
+import loansRoutes from './modules/loans/loans.routes';
 
 dotenv.config();
 
@@ -29,8 +30,8 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({
     status: 'HEALTHY',
     system: 'Co-operative Bank / Pat Sanstha CBS',
-    phase: 'Phase 2 - Accounts & CASA',
-    version: '1.2.0',
+    phase: 'Phase 3 - Loans & Advances',
+    version: '1.3.0',
     timestamp: new Date().toISOString()
   });
 });
@@ -48,6 +49,9 @@ app.use('/api/products', productRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/teller', tellerRoutes);
 app.use('/api/transfers', transferRoutes);
+
+// Phase 3 Modules
+app.use('/api/loans', loansRoutes);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

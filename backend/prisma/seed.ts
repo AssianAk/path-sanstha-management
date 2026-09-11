@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed for Co-operative Bank / Pat Sanstha CBS (Phase 1 & 2)...');
+  console.log('🌱 Starting database seed for Co-operative Bank / Pat Sanstha CBS (Phase 1, 2 & 3)...');
 
   // 1. Roles
   const rolesData = [
@@ -47,7 +47,6 @@ async function main() {
       establishedDate: new Date('1998-04-14')
     }
   });
-  console.log(`✓ Seeded Organization: ${org.name}`);
 
   // 3. Branches
   const b1 = await prisma.branch.upsert({
@@ -103,9 +102,8 @@ async function main() {
       email: 'thane@samruddhibank.in'
     }
   });
-  console.log('✓ Seeded Branches: BR001, BR002, BR003');
 
-  // Counters for BR001
+  // Counter 1
   const counter1 = await prisma.branchCounter.upsert({
     where: { id: 'cntr-001' },
     update: {},
@@ -118,22 +116,12 @@ async function main() {
     }
   });
 
-  // 4. Business Date for Branches
+  // 4. Business Date
   const todayStr = '2026-09-11';
   await prisma.businessDate.upsert({
     where: { branchId_currentDate: { branchId: b1.id, currentDate: todayStr } },
     update: {},
     create: { branchId: b1.id, currentDate: todayStr, status: 'OPEN' }
-  });
-  await prisma.businessDate.upsert({
-    where: { branchId_currentDate: { branchId: b2.id, currentDate: todayStr } },
-    update: {},
-    create: { branchId: b2.id, currentDate: todayStr, status: 'OPEN' }
-  });
-  await prisma.businessDate.upsert({
-    where: { branchId_currentDate: { branchId: b3.id, currentDate: todayStr } },
-    update: {},
-    create: { branchId: b3.id, currentDate: todayStr, status: 'OPEN' }
   });
 
   // 5. Users
@@ -165,7 +153,6 @@ async function main() {
     });
     userMap.set(u.username, user.id);
   }
-  console.log(`✓ Seeded ${users.length} Users with credentials`);
 
   // 6. System Settings
   const settings = [
@@ -184,13 +171,14 @@ async function main() {
     });
   }
 
-  // 7. Seed Sample Customers
+  // 7. Customers
   const makerId = userMap.get('maker_pune')!;
   const checkerId = userMap.get('checker_pune')!;
+  const bmId = userMap.get('bm_pune')!;
 
   const member1 = await prisma.customer.upsert({
     where: { customerNumber: 'CUST-2026-00001' },
-    update: {},
+    update: { status: 'ACTIVE', memberStatus: 'ACTIVE' },
     create: {
       customerNumber: 'CUST-2026-00001',
       customerType: 'INDIVIDUAL',
@@ -216,56 +204,7 @@ async function main() {
       riskCategory: 'LOW',
       status: 'ACTIVE',
       createdByUserId: makerId,
-      approvedByUserId: checkerId,
-      addresses: {
-        create: [
-          {
-            addressType: 'PERMANENT',
-            line1: 'Bungalow 14, Sahakar Colony',
-            city: 'Pune',
-            state: 'Maharashtra',
-            pincode: '411016',
-            isPrimary: true
-          }
-        ]
-      },
-      nominees: {
-        create: [
-          {
-            name: 'Sunita Rajesh Kulkarni',
-            relationship: 'Wife',
-            age: 38,
-            allocationPercentage: 100.0,
-            isMinor: false
-          }
-        ]
-      },
-      memberShares: {
-        create: [
-          {
-            shareCertificateNumber: 'CERT-2026-00142',
-            distinctFrom: 14201,
-            distinctTo: 14300,
-            totalShares: 100,
-            faceValue: 10.0,
-            totalAmount: 1000.0,
-            status: 'ACTIVE'
-          }
-        ]
-      },
-      kycDocuments: {
-        create: [
-          {
-            documentType: 'PAN',
-            documentNumber: 'ABCDE1234F',
-            version: 1,
-            status: 'VERIFIED',
-            verifiedByUserId: checkerId,
-            verifiedAt: new Date(),
-            verificationRemarks: 'PAN verified with Income Tax NSDL database match.'
-          }
-        ]
-      }
+      approvedByUserId: checkerId
     }
   });
 
@@ -297,80 +236,16 @@ async function main() {
       riskCategory: 'LOW',
       status: 'ACTIVE',
       createdByUserId: makerId,
-      approvedByUserId: checkerId,
-      addresses: {
-        create: [
-          {
-            addressType: 'CURRENT',
-            line1: 'Flat 402, Shreeram Residency',
-            city: 'Pune',
-            state: 'Maharashtra',
-            pincode: '411038',
-            isPrimary: true
-          }
-        ]
-      }
+      approvedByUserId: checkerId
     }
   });
 
-  // -------------------------------------------------------------
-  // 8. PHASE 2: PRODUCTS SEEDING (SAVINGS, CURRENT, FD, RD)
-  // -------------------------------------------------------------
+  // 8. Deposit Products
   const productsData = [
-    {
-      code: 'SB001',
-      name: 'Samruddhi Regular Savings Bank',
-      category: 'SAVINGS',
-      description: 'Standard liquid deposit account with quarterly interest payout',
-      minBalance: 500.0,
-      interestRate: 3.5,
-      compoundingFrequency: 'QUARTERLY',
-      tenureMinMonths: 0,
-      tenureMaxMonths: 0,
-      glAccountCode: 'GL-2001',
-      isActive: true
-    },
-    {
-      code: 'CA001',
-      name: 'Samruddhi Business Current Account',
-      category: 'CURRENT',
-      description: 'Operational business checking account with high transaction limits',
-      minBalance: 5000.0,
-      interestRate: 0.0,
-      compoundingFrequency: 'NONE',
-      tenureMinMonths: 0,
-      tenureMaxMonths: 0,
-      glAccountCode: 'GL-2002',
-      isActive: true
-    },
-    {
-      code: 'FD001',
-      name: 'Samruddhi Term Deposit (FD)',
-      category: 'FIXED_DEPOSIT',
-      description: 'High return fixed term deposit with compounding interest',
-      minBalance: 10000.0,
-      interestRate: 7.25,
-      compoundingFrequency: 'QUARTERLY',
-      tenureMinMonths: 6,
-      tenureMaxMonths: 120,
-      prematurePenaltyRate: 1.0,
-      glAccountCode: 'GL-2003',
-      isActive: true
-    },
-    {
-      code: 'RD001',
-      name: 'Lakhpati Recurring Deposit (RD)',
-      category: 'RECURRING_DEPOSIT',
-      description: 'Monthly disciplined savings scheme with cumulative interest',
-      minBalance: 1000.0,
-      interestRate: 7.0,
-      compoundingFrequency: 'QUARTERLY',
-      tenureMinMonths: 12,
-      tenureMaxMonths: 120,
-      prematurePenaltyRate: 1.0,
-      glAccountCode: 'GL-2004',
-      isActive: true
-    }
+    { code: 'SB001', name: 'Samruddhi Regular Savings Bank', category: 'SAVINGS', minBalance: 500.0, interestRate: 3.5, compoundingFrequency: 'QUARTERLY', glAccountCode: 'GL-2001' },
+    { code: 'CA001', name: 'Samruddhi Business Current Account', category: 'CURRENT', minBalance: 5000.0, interestRate: 0.0, compoundingFrequency: 'NONE', glAccountCode: 'GL-2002' },
+    { code: 'FD001', name: 'Samruddhi Term Deposit (FD)', category: 'FIXED_DEPOSIT', minBalance: 10000.0, interestRate: 7.25, compoundingFrequency: 'QUARTERLY', glAccountCode: 'GL-2003' },
+    { code: 'RD001', name: 'Lakhpati Recurring Deposit (RD)', category: 'RECURRING_DEPOSIT', minBalance: 1000.0, interestRate: 7.0, compoundingFrequency: 'QUARTERLY', glAccountCode: 'GL-2004' }
   ];
 
   const productMap = new Map<string, string>();
@@ -382,149 +257,289 @@ async function main() {
     });
     productMap.set(p.code, prod.id);
   }
-  console.log(`✓ Seeded ${productsData.length} Deposit Products (SB, CA, FD, RD)`);
 
-  // -------------------------------------------------------------
-  // 9. PHASE 2: SEED ACTIVE ACCOUNTS
-  // -------------------------------------------------------------
-  // Account 1: Rajesh Kulkarni Savings Account
+  // 9. CASA Accounts
   const sbAcc1 = await prisma.account.upsert({
     where: { accountNumber: 'SB-2026-00001' },
-    update: {},
+    update: { ledgerBalance: 25000.0, availableBalance: 25000.0 },
     create: {
       accountNumber: 'SB-2026-00001',
       customerId: member1.id,
       productId: productMap.get('SB001')!,
       branchId: b1.id,
-      currency: 'INR',
-      ledgerBalance: 15000.0,
-      availableBalance: 15000.0,
+      ledgerBalance: 25000.0,
+      availableBalance: 25000.0,
       status: 'ACTIVE',
       nomineeName: 'Sunita Rajesh Kulkarni',
       nomineeRelation: 'Wife'
     }
   });
 
-  // Account 2: Rajesh Kulkarni Fixed Deposit
-  const fdAcc1 = await prisma.account.upsert({
-    where: { accountNumber: 'FD-2026-00001' },
-    update: {},
-    create: {
-      accountNumber: 'FD-2026-00001',
-      customerId: member1.id,
-      productId: productMap.get('FD001')!,
-      branchId: b1.id,
-      currency: 'INR',
-      ledgerBalance: 100000.0,
-      availableBalance: 0.0, // Term deposits have available balance 0 until liquidated
-      status: 'ACTIVE',
-      nomineeName: 'Sunita Rajesh Kulkarni',
-      nomineeRelation: 'Wife',
-      termDepositDetail: {
-        create: {
-          depositAmount: 100000.0,
-          tenureMonths: 12,
-          interestRate: 7.25,
-          maturityDate: '2027-09-11',
-          maturityAmount: 107450.0,
-          payoutType: 'ON_MATURITY',
-          autoRenewal: true
-        }
-      }
-    }
-  });
-
-  // Account 3: Priya Patil Savings Account
   const sbAcc2 = await prisma.account.upsert({
     where: { accountNumber: 'SB-2026-00002' },
-    update: {},
+    update: { ledgerBalance: 8000.0, availableBalance: 8000.0 },
     create: {
       accountNumber: 'SB-2026-00002',
       customerId: member2.id,
       productId: productMap.get('SB001')!,
       branchId: b1.id,
-      currency: 'INR',
-      ledgerBalance: 5000.0,
-      availableBalance: 5000.0,
-      status: 'ACTIVE',
-      nomineeName: 'Aarav Ramesh Patil',
-      nomineeRelation: 'Son'
+      ledgerBalance: 8000.0,
+      availableBalance: 8000.0,
+      status: 'ACTIVE'
     }
   });
-  console.log('✓ Seeded Accounts: SB-2026-00001, FD-2026-00001, SB-2026-00002');
 
-  // -------------------------------------------------------------
-  // 10. PHASE 2: TELLER TILL SESSION (BR001)
-  // -------------------------------------------------------------
-  const tellerUser = await prisma.user.findUnique({ where: { username: 'maker_pune' } });
-  const till = await prisma.tellerTill.upsert({
+  // 10. Teller Till Session
+  await prisma.tellerTill.upsert({
     where: { id: 'till-br001-today' },
-    update: {},
+    update: { currentBalance: 55000.0 },
     create: {
       id: 'till-br001-today',
       branchId: b1.id,
-      userId: tellerUser!.id,
+      userId: makerId,
       counterId: counter1.id,
       businessDate: todayStr,
       openingBalance: 25000.0,
-      totalCashReceived: 15000.0,
+      totalCashReceived: 30000.0,
       totalCashPaid: 0.0,
-      currentBalance: 40000.0,
+      currentBalance: 55000.0,
       status: 'OPEN'
     }
   });
-  console.log(`✓ Seeded Active Teller Till for Counter ${counter1.counterNumber}`);
 
   // -------------------------------------------------------------
-  // 11. INITIAL BALANCED FINANCIAL TRANSACTION (Section 21 Pattern)
+  // 11. PHASE 3: LOAN PRODUCTS SEEDING (SECTIONS 10 & 20)
   // -------------------------------------------------------------
-  const initialTxn = await prisma.transaction.upsert({
-    where: { transactionReference: 'TXN-20260911-00001' },
+  const loanProductsData = [
+    {
+      code: 'BL001',
+      name: 'Samruddhi Vyapar SME Term Loan',
+      category: 'BUSINESS',
+      description: 'Collateral-backed working capital and equipment finance for businesses',
+      interestRate: 11.0,
+      interestType: 'REDUCING_BALANCE',
+      minAmount: 50000.0,
+      maxAmount: 2500000.0,
+      minTenureMonths: 12,
+      maxTenureMonths: 84,
+      processingFeePercent: 1.0,
+      glAssetCode: 'GL-1002',
+      glIncomeCode: 'GL-4001'
+    },
+    {
+      code: 'PL001',
+      name: 'Samruddhi Personal Loan',
+      category: 'PERSONAL',
+      description: 'Quick clean personal loan for medical, travel, and festive needs',
+      interestRate: 12.5,
+      interestType: 'REDUCING_BALANCE',
+      minAmount: 20000.0,
+      maxAmount: 500000.0,
+      minTenureMonths: 6,
+      maxTenureMonths: 60,
+      processingFeePercent: 1.5,
+      glAssetCode: 'GL-1002',
+      glIncomeCode: 'GL-4001'
+    },
+    {
+      code: 'GL001',
+      name: 'Swarna Samruddhi Gold Loan',
+      category: 'GOLD',
+      description: 'Instant loan against gold jewelry with high per-gram valuation',
+      interestRate: 9.5,
+      interestType: 'REDUCING_BALANCE',
+      minAmount: 10000.0,
+      maxAmount: 1000000.0,
+      minTenureMonths: 3,
+      maxTenureMonths: 24,
+      processingFeePercent: 0.5,
+      glAssetCode: 'GL-1002',
+      glIncomeCode: 'GL-4001'
+    },
+    {
+      code: 'AG001',
+      name: 'Kisan Krishi Vikas Term Loan',
+      category: 'AGRICULTURAL',
+      description: 'Subsidized term finance for irrigation, tractors, and agricultural development',
+      interestRate: 7.0,
+      interestType: 'REDUCING_BALANCE',
+      minAmount: 25000.0,
+      maxAmount: 1500000.0,
+      minTenureMonths: 12,
+      maxTenureMonths: 60,
+      processingFeePercent: 0.5,
+      glAssetCode: 'GL-1002',
+      glIncomeCode: 'GL-4001'
+    }
+  ];
+
+  const loanProdMap = new Map<string, string>();
+  for (const lp of loanProductsData) {
+    const prod = await prisma.loanProduct.upsert({
+      where: { code: lp.code },
+      update: { name: lp.name, interestRate: lp.interestRate },
+      create: lp
+    });
+    loanProdMap.set(lp.code, prod.id);
+  }
+  console.log(`✓ Seeded ${loanProductsData.length} Loan Products (Business, Personal, Gold, Agri)`);
+
+  // -------------------------------------------------------------
+  // 12. PHASE 3: SAMPLE LOAN APPLICATION & DISBURSED LOAN ACCOUNT
+  // -------------------------------------------------------------
+  // Application for Rajesh Kulkarni: ₹300,000 Business Term Loan (BL001)
+  const app1 = await prisma.loanApplication.upsert({
+    where: { applicationNumber: 'LA-2026-00001' },
     update: {},
     create: {
-      transactionReference: 'TXN-20260911-00001',
-      transactionType: 'CASH_DEPOSIT',
-      channel: 'BRANCH_TELLER',
+      applicationNumber: 'LA-2026-00001',
+      customerId: member1.id,
+      loanProductId: loanProdMap.get('BL001')!,
       branchId: b1.id,
-      businessDate: todayStr,
-      destinationAccountId: sbAcc1.id,
-      amount: 15000.0,
-      currency: 'INR',
-      narration: 'Initial cash deposit at account opening',
-      status: 'POSTED',
-      makerUserId: makerId,
-      checkerUserId: checkerId,
-      tellerTillId: till.id,
-      denomination: {
-        create: {
-          note500: 30,
-          totalAmount: 15000.0
-        }
-      },
-      journalLines: {
+      requestedAmount: 300000.0,
+      requestedTenureMonths: 24,
+      purpose: 'Wholesale agricultural warehouse expansion and inventory',
+      status: 'DISBURSED',
+      riskGrade: 'GRADE_A',
+      appraisalNotes: 'Established borrower with solid banking turnover and clear property security. Low credit risk.',
+      sanctionedAmount: 300000.0,
+      sanctionedTenureMonths: 24,
+      interestRate: 11.0,
+      sanctionedAt: new Date('2026-09-10'),
+      sanctionedByUserId: bmId,
+      guarantors: {
         create: [
           {
-            glAccountCode: 'GL-1001',
-            glAccountName: 'Cash in Hand / Branch Vault',
-            entryType: 'DEBIT',
-            amount: 15000.0,
-            businessDate: todayStr
-          },
+            name: 'Mahesh Suresh Kulkarni',
+            relationship: 'Brother',
+            phone: '9822099887',
+            pan: 'ABCDE9999M',
+            occupation: 'Government Officer',
+            netWorth: 2500000.0
+          }
+        ]
+      },
+      collaterals: {
+        create: [
           {
-            glAccountCode: 'GL-2001',
-            glAccountName: 'Customer Deposit Liability (Savings)',
-            entryType: 'CREDIT',
-            amount: 15000.0,
-            businessDate: todayStr,
-            accountId: sbAcc1.id
+            collateralType: 'PROPERTY',
+            description: 'Commercial Shop No. 4, Market Yard, Pune',
+            marketValue: 1200000.0,
+            assessedValue: 900000.0,
+            documentRef: 'DOC-REG-PUNE-2021-9871'
           }
         ]
       }
     }
   });
-  console.log(`✓ Seeded Balanced Financial Transaction: ${initialTxn.transactionReference} (Total Debits == Total Credits = ₹15,000)`);
 
-  console.log('🎉 Seed complete successfully for Phase 1 & 2!');
+  // Calculate reducing balance EMI for ₹300,000 @ 11.0% for 24 months
+  // P = 300000, r = 0.11 / 12 = 0.00916667, n = 24
+  // EMI = 300000 * 0.00916667 * (1.00916667)^24 / ((1.00916667)^24 - 1) = ₹13,986.08
+  const emiVal = 13986.0;
+
+  const loanAcc1 = await prisma.loanAccount.upsert({
+    where: { loanAccountNumber: 'LN-2026-00001' },
+    update: {},
+    create: {
+      loanAccountNumber: 'LN-2026-00001',
+      loanApplicationId: app1.id,
+      customerId: member1.id,
+      loanProductId: loanProdMap.get('BL001')!,
+      branchId: b1.id,
+      sanctionedAmount: 300000.0,
+      disbursedAmount: 300000.0,
+      principalOutstanding: 300000.0,
+      interestRate: 11.0,
+      interestType: 'REDUCING_BALANCE',
+      tenureMonths: 24,
+      emiAmount: emiVal,
+      disbursementDate: todayStr,
+      firstEmiDate: '2026-10-11',
+      maturityDate: '2028-09-11',
+      status: 'ACTIVE',
+      savingsAccountId: sbAcc1.id
+    }
+  });
+
+  // Generate 24 installments for LN-2026-00001
+  const existingInsts = await prisma.loanInstallment.count({ where: { loanAccountId: loanAcc1.id } });
+  if (existingInsts === 0) {
+    let balance = 300000.0;
+    const monthlyRate = 0.11 / 12;
+
+    for (let i = 1; i <= 24; i++) {
+      const interestDue = Math.round(balance * monthlyRate * 100) / 100;
+      const principalDue = Math.round((emiVal - interestDue) * 100) / 100;
+      balance = Math.max(0, balance - principalDue);
+
+      const d = new Date('2026-09-11');
+      d.setMonth(d.getMonth() + i);
+      const dueDateStr = d.toISOString().split('T')[0];
+
+      await prisma.loanInstallment.create({
+        data: {
+          loanAccountId: loanAcc1.id,
+          installmentNumber: i,
+          dueDate: dueDateStr,
+          principalDue,
+          interestDue,
+          totalEmi: emiVal,
+          status: 'PENDING'
+        }
+      });
+    }
+  }
+
+  // Initial Loan Disbursement Transaction
+  const disbTxn = await prisma.transaction.upsert({
+    where: { transactionReference: 'TXN-20260911-00002' },
+    update: {},
+    create: {
+      transactionReference: 'TXN-20260911-00002',
+      transactionType: 'LOAN_DISBURSEMENT',
+      channel: 'BRANCH_TELLER',
+      branchId: b1.id,
+      businessDate: todayStr,
+      destinationAccountId: sbAcc1.id,
+      amount: 300000.0,
+      currency: 'INR',
+      narration: `Disbursement of SME Business Loan ${loanAcc1.loanAccountNumber} to Savings Account`,
+      status: 'POSTED',
+      makerUserId: makerId,
+      checkerUserId: bmId,
+      journalLines: {
+        create: [
+          {
+            glAccountCode: 'GL-1002',
+            glAccountName: 'Loan Asset (Principal Outstanding)',
+            entryType: 'DEBIT',
+            amount: 300000.0,
+            businessDate: todayStr
+          },
+          {
+            glAccountCode: 'GL-2001',
+            glAccountName: 'Customer Savings Account Liability',
+            entryType: 'CREDIT',
+            amount: 297000.0,
+            businessDate: todayStr,
+            accountId: sbAcc1.id
+          },
+          {
+            glAccountCode: 'GL-4001',
+            glAccountName: 'Loan Processing Fee Income (1%)',
+            entryType: 'CREDIT',
+            amount: 3000.0,
+            businessDate: todayStr
+          }
+        ]
+      }
+    }
+  });
+
+  console.log(`✓ Seeded Disbursed Loan: ${loanAcc1.loanAccountNumber} with 24 EMI Schedule (EMI: ₹${emiVal})`);
+  console.log(`✓ Seeded Balanced Disbursement Txn: ${disbTxn.transactionReference} (Total Debits: ₹300k == Total Credits: ₹300k)`);
+  console.log('🎉 Seed complete successfully for Phase 1, 2 & 3!');
 }
 
 main()

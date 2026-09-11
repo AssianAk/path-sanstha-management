@@ -13,8 +13,8 @@
 | :--- | :--- | :--- | :---: | :---: |
 | **Phase 1** | **Foundation** | Auth/RBAC, Org/Branch, Customer/Member Master, KYC, Audit, Settings | 🟢 Completed | 100% |
 | **Phase 2** | **Accounts & CASA** | Products, Savings/Current, Deposits (FD/RD), Teller/Cash, Transfers | 🟢 Completed | 100% |
-| **Phase 3** | **Loans & Advances** | Loan Origination, Appraisal, Sanction, Disbursement, Repayment Waterfall | ⚪ Next Up | 0% |
-| **Phase 4** | **Collections & Recovery**| Overdue monitoring, DPD calculation, Collector assignment, Notices, NPA | ⚪ Not Started | 0% |
+| **Phase 3** | **Loans & Advances** | Loan Origination (LOS), Appraisal, Sanction, Disbursement, Waterfall Repayment | 🟢 Completed | 100% |
+| **Phase 4** | **Collections & Recovery**| Overdue monitoring, DPD calculation, Collector assignment, Demand Notices, NPA | ⚪ Next Up | 0% |
 | **Phase 5** | **General Ledger & Accounting**| Chart of Accounts (COA), Multi-branch GL posting, Trial Balance, P&L, Balance Sheet | ⚪ Not Started | 0% |
 | **Phase 6** | **Reporting & MIS** | Regulatory returns, MIS dashboards, Member statements, Cash position | ⚪ Not Started | 0% |
 | **Phase 7** | **Digital Channels & Integrations** | Member self-service portal, SMS/Email/WhatsApp alerts, Payment gateway rails | ⚪ Not Started | 0% |
@@ -77,10 +77,63 @@
 
 ---
 
-## Phase 3: Loans & Advances (Next Sprint Scope)
+## Phase 3: Loans & Advances (Completed Deliverables)
 
-- [ ] **Loan Products Catalog**: Personal Loans, Vehicle Loans, Gold Loans, Business/Mortgage Loans, Agricultural Term Loans.
-- [ ] **Loan Origination System (LOS)**: Application capture, co-applicants, guarantors, collateral appraisal, credit grading.
-- [ ] **Sanction & Disbursement Engine**: Sanction letter generation, deduction of processing fees/charges, disbursement directly into customer savings account with balanced GL journal.
-- [ ] **Repayment Schedule Generation**: Reducing balance EMI schedules and flat interest amortization tables.
-- [ ] **Waterfall Repayment Allocation**: Charges/fees → Penalty/late fees → Overdue Interest → Current Interest → Principal.
+### ✅ Completed & Tested Items:
+
+- [x] **Loan Products Catalog (Section 10 & 20)**
+  - [x] Pre-configured institutional loan product catalog with interest rules, tenure bounds, and GL mapping:
+    - `PL001`: Samruddhi Personal Loan (12.5% p.a., Reducing Balance, up to ₹5 Lakhs, `GL-1002`, `GL-4001`)
+    - `GL001`: Swarna Samruddhi Gold Loan (9.5% p.a., Reducing Balance, up to ₹10 Lakhs, `GL-1002`, `GL-4001`)
+    - `BL001`: Samruddhi Vyapar SME Term Loan (11.0% p.a., Reducing Balance, up to ₹50 Lakhs, `GL-1002`, `GL-4001`)
+    - `AG001`: Kisan Krishi Vikas Term Loan (7.0% p.a., Reducing Balance, up to ₹15 Lakhs, `GL-1002`, `GL-4001`)
+  - [x] Products API with authorization guards
+
+- [x] **Loan Origination System (LOS) & Maker-Checker Workflow (Section 10 & 28)**
+  - [x] Application capture with customer verification gate (KYC must be `ACTIVE`)
+  - [x] Co-applicants & Guarantors capture (Name, relationship, occupation, phone, net worth)
+  - [x] Collateral asset appraisal (Gold, Property, Vehicle, FD Lien) with market & assessed values
+  - [x] Loan Officer Appraisal step: Risk grading (`LOW`, `MEDIUM`, `HIGH`) and appraisal credit notes
+  - [x] Authorizer / Sanction Committee step: Sanctioned amount, sanctioned interest rate, and tenure finalization
+  - [x] Immutable audit trail logging for all LOS stage transitions
+
+- [x] **Disbursement Engine & Financial Invariant (Section 10 & 21)**
+  - [x] Direct credit to customer savings account (`GL-2001`) or cash disbursement
+  - [x] Automated upfront processing fee deduction (e.g., 1.5% credited to `GL-4001`)
+  - [x] Balanced double-entry financial posting adhering strictly to:
+    $$\sum \text{Debits} = \sum \text{Credits}$$
+    - Debit: `GL-1002 Loan Principal Asset` (Gross Sanctioned Amount)
+    - Credit: `GL-2001 Customer Savings Deposit Liability` (Net Disbursed Amount)
+    - Credit: `GL-4001 Loan Processing Fee Income` (Fee Amount)
+  - [x] Loan account generation with sequence `LN-YYYY-XXXXX`
+
+- [x] **Amortization & Schedule Engine (Section 11 & 20)**
+  - [x] Reducing balance EMI calculation formula:
+    $$EMI = \frac{P \cdot r \cdot (1+r)^n}{(1+r)^n - 1}$$
+  - [x] Automated generation of complete installment schedule (`LoanInstallment` table) with monthly due dates, principal due, and interest due breakdowns
+
+- [x] **Waterfall Repayment Allocation Engine (Section 11 & 21)**
+  - [x] Strict regulatory repayment waterfall order:
+    $$\text{Repayment Amount} \longrightarrow \text{Late Penalties} \longrightarrow \text{Overdue Interest} \longrightarrow \text{Current Interest} \longrightarrow \text{Principal Reduction}$$
+  - [x] Partial and excess payment handling across multiple installments
+  - [x] Atomic update of loan principal outstanding, installment paid flags, and loan status (`ACTIVE` $\to$ `CLOSED`)
+  - [x] Component-wise allocation audit recording in `LoanPaymentAllocation` table
+
+- [x] **Frontend User Interface (React + TypeScript + Tailwind CSS)**
+  - [x] **Loans Hub**: Portfolio overview cards (Active Loans, Gross Loan Book, Overdue, NPA Ratio), product tabs, and unified search
+  - [x] **New Loan Modal**: Product picker, real-time live EMI calculator, guarantor roster, and collateral asset entry
+  - [x] **Loan Detail Modal**: 360° view with borrower KYC profile, collateral values, loan terms, and complete installment schedule table with live status badges
+  - [x] **Loan Repayment Modal**: Cash or savings account deduction, instant waterfall preview, and printable repayment receipt
+  - [x] **Navigation & Dashboard**: Added `/loans` navigation menu and updated Executive Dashboard with Loan Asset KPIs
+
+---
+
+## Phase 4: Collections & Recovery / NPA (Next Sprint Scope)
+
+- [ ] **Days Past Due (DPD) Tracking**: Daily automated overdue calculation based on active branch business date.
+- [ ] **Asset Classification & NPA Aging Engine (Section 11 & 24)**:
+  - Standard Assets (SMA-0: 1-30 DPD, SMA-1: 31-60 DPD, SMA-2: 61-90 DPD)
+  - Non-Performing Assets (Sub-Standard: >90 DPD to 12 months, Doubtful 1/2/3, Loss Assets)
+- [ ] **Provisioning Engine (Section 11)**: Automated RBI/Co-operative provisioning calculation based on asset class.
+- [ ] **Recovery & Field Collection Hub**: Collector portfolio assignment, daily collection sheets, field visit logs.
+- [ ] **Legal & Recovery Notices (Section 12)**: Automated demand notice generation, Section 101 / 138 / SARFAESI notice tracking.
