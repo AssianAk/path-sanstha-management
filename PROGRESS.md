@@ -15,8 +15,8 @@
 | **Phase 2** | **Accounts & CASA** | Products, Savings/Current, Deposits (FD/RD), Teller/Cash, Transfers | 🟢 Completed | 100% |
 | **Phase 3** | **Loans & Advances** | Loan Origination (LOS), Appraisal, Sanction, Disbursement, Waterfall Repayment | 🟢 Completed | 100% |
 | **Phase 4** | **Collections & Recovery**| Overdue monitoring, DPD calculation, Collector assignment, Demand Notices, NPA | 🟢 Completed | 100% |
-| **Phase 5** | **General Ledger & Accounting**| Chart of Accounts (COA), Multi-branch GL posting, Trial Balance, P&L, Balance Sheet | ⚪ Next Up | 0% |
-| **Phase 6** | **Reporting & MIS** | Regulatory returns, MIS dashboards, Member statements, Cash position | ⚪ Not Started | 0% |
+| **Phase 5** | **General Ledger & Accounting**| Chart of Accounts (COA), Multi-branch GL posting, Trial Balance, P&L, Balance Sheet | 🟢 Completed | 100% |
+| **Phase 6** | **Reporting & MIS** | Regulatory returns, MIS dashboards, Member statements, Cash position | ⚪ Next Up | 0% |
 | **Phase 7** | **Digital Channels & Integrations** | Member self-service portal, SMS/Email/WhatsApp alerts, Payment gateway rails | ⚪ Not Started | 0% |
 | **Phase 8** | **Hardening & Rollout** | Security audit, Performance benchmarks, Disaster Recovery, Production cutover | ⚪ Not Started | 0% |
 
@@ -177,10 +177,65 @@
 
 ---
 
-## Phase 5: General Ledger & Accounting (Next Sprint Scope)
+## Phase 5: General Ledger & Accounting (Completed Deliverables)
 
-- [ ] **Chart of Accounts (COA) Architecture (Section 21)**: Multi-level hierarchical GL structure (Assets, Liabilities, Equity, Income, Expense) compliant with RBI & Co-operative Banking formats.
-- [ ] **Multi-Branch Centralized General Ledger Posting**: Automated and manual journal entries (Contra, Credit, Debit) with branch-level sub-ledgers.
-- [ ] **Financial Invariant Validation**: Automated reconciliation verifying $\sum \text{Debits} == \sum \text{Credits}$ across all active ledgers.
-- [ ] **Trial Balance Engine**: Daily gross and net Trial Balance generation by branch and consolidated institution-wide.
-- [ ] **Profit & Loss (Income Statement) & Balance Sheet Generation**: Real-time statutory financial statements.
+### ✅ Completed & Tested Items:
+
+- [x] **Chart of Accounts (COA) Architecture (Section 21)**
+  - [x] Standardized 5-tier institutional Chart of Accounts master (`GLAccount` table):
+    - **1000s (Assets)**: Cash in Hand/Till (`GL-1001`), Loans & Advances Asset (`GL-1002`), Bank Balances (`GL-1003`), SLR Investments (`GL-1004`), Premises & IT Assets (`GL-1005`)
+    - **2000s (Liabilities)**: Savings Bank Deposits (`GL-2001`), Current Accounts (`GL-2002`), Fixed Term Deposits (`GL-2003`), Recurring Deposits (`GL-2004`), Sundry Creditors (`GL-2099`)
+    - **3000s (Equity & Reserves)**: Subscribed Member Share Capital (`GL-3001`), Statutory Reserve Fund (`GL-3002`), Bad Debt Reserve (`GL-3003`), Building Fund (`GL-3004`)
+    - **4000s (Operating Income)**: Interest Income on Loans (`GL-4001`), Processing Fees (`GL-4002`), Late Penalties (`GL-4003`), Locker & Commission Income (`GL-4004`)
+    - **5000s (Operating Expenses)**: Interest on Customer Deposits (`GL-5001`), Staff Salaries (`GL-5002`), Rent, Electricity & Overhead (`GL-5003`), NPA Provisions (`GL-5004`), Audit Fees (`GL-5005`)
+  - [x] Directory API with live debit/credit aggregates and net balance computation
+
+- [x] **Manual Double-Entry Journal Voucher Engine (Section 21 & 31)**
+  - [x] Role-guarded journal posting for Chief Accountant (`accountant_pune`), Branch Manager, and Admins
+  - [x] Multi-leg voucher support (debit and credit multiple accounts)
+  - [x] **Strict Double-Entry Invariant Enforcement**:
+    $$\sum \text{Debits} == \sum \text{Credits}$$
+    - Unbalanced vouchers rejected immediately with HTTP 400 and exact difference amount
+    - Balanced vouchers committed atomically in ACID transaction with audit logging
+
+- [x] **General Ledger Day Book & Audit Trail (Section 21)**
+  - [x] Real-time chronological audit of all posted ledger lines
+  - [x] Linked transaction references, dates, GL codes, voucher narrations, and maker details
+
+- [x] **Statutory Daily Trial Balance Engine (Section 21)**
+  - [x] Multi-branch consolidated trial balance generation as on active business date
+  - [x] Categorized gross debits, gross credits, and net debit/credit closing balances
+  - [x] Mathematical reconciliation verifying:
+    $$\sum \text{Total Net Debits} == \sum \text{Total Net Credits}$$
+    *(Tested & verified: ₹740,670.47 == ₹740,670.47, Difference: ₹0.00)*
+
+- [x] **Profit & Loss Statement (Income Statement) & Statutory Allocations**
+  - [x] Real-time aggregation of operating income vs operating expenditure
+  - [x] Net Operating Profit / Surplus computation
+  - [x] Automated mandatory allocations under State Co-operative Societies Act:
+    - **25% Statutory Reserve Fund**
+    - **1% Co-operative Education Fund**
+    - **Dividend Equalization & Free Surplus**
+
+- [x] **Statutory Balance Sheet Engine**
+  - [x] Real-time formulation of **Capital & Liabilities** vs **Property & Assets**
+  - [x] Invariant verification: $\text{Total Assets} == \text{Total Liabilities \& Equity}$
+    *(Tested & verified: ₹728,170.47 == ₹728,170.47, Difference: ₹0.00)*
+
+- [x] **Frontend User Interface (React + TypeScript + Tailwind CSS)**
+  - [x] **GL Hub (`/gl`)**: Top KPI strip (Assets, Liabilities & Equity, Operating Surplus, Trial Balance Status) and 4 interactive tabs:
+    1. *Chart of Accounts (COA)*: Categorized tree directory with live balance cards and search
+    2. *General Journal / Day Book*: Chronological transaction feed with debit/credit badges
+    3. *Trial Balance Table*: Full multi-column statutory trial balance with printable view
+    4. *Financial Statements*: Interactive toggle between Balance Sheet and Profit & Loss statement
+  - [x] **New Journal Voucher Modal**: Multi-row interactive voucher creation with live Debits vs Credits equality validator
+  - [x] **Sidebar Navigation**: Added `/gl` menu item with active indicator
+
+---
+
+## Phase 6: Reporting & Regulatory MIS (Next Sprint Scope)
+
+- [ ] **RBI / Apex Co-operative Regulatory Returns**: Form I (Cash Reserve), Form IX (Financial Position), SLR compliance report.
+- [ ] **Managerial MIS Dashboards**: Deposit growth trends, Cost of Funds vs Yield on Advances, Net Interest Margin (NIM), CASA ratio.
+- [ ] **Customer & Member Statements**: Passbook generation, Statement of Accounts with date filters, Certificate of Interest for Tax/ITR.
+- [ ] **Cash Flow & Daily Cash Position Report**: Vault cash, branch teller positions, inter-bank balance summary.

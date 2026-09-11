@@ -12,6 +12,7 @@ import {
   ArrowLeftRight,
   Award,
   ShieldAlert,
+  BookOpen,
   GitBranch
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -44,6 +45,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
 
   const phase4Items = [
     { to: '/collections', label: 'Collections & NPA Hub', icon: ShieldAlert },
+  ];
+
+  const phase5Items = [
+    { to: '/gl', label: 'General Ledger & COA', icon: BookOpen },
   ];
 
   return (
@@ -173,6 +178,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
           );
         })}
 
+        {/* Phase 5 Group */}
+        <div className="pt-3 px-3 py-1 text-[10px] font-semibold text-teal-400 uppercase tracking-wider flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse"></span>
+          <span>Phase 5 - General Ledger</span>
+        </div>
+        {phase5Items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  isActive
+                    ? 'bg-teal-600 text-white font-semibold shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`
+              }
+            >
+              <div className="flex items-center space-x-2.5">
+                <Icon className="w-3.5 h-3.5" />
+                <span>{item.label}</span>
+              </div>
+            </NavLink>
+          );
+        })}
+
         {/* Roadmap Preview */}
         <div className="pt-4 px-3 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
           Roadmap Modules
@@ -180,11 +212,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
         <div className="px-3 space-y-1 text-xs text-slate-500">
           <div className="flex items-center space-x-2 py-0.5">
             <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-            <span>Phase 5: General Ledger & Accounting</span>
+            <span>Phase 6: Reporting & Regulatory MIS</span>
           </div>
           <div className="flex items-center space-x-2 py-0.5">
             <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-            <span>Phase 6: Reporting & Regulatory MIS</span>
+            <span>Phase 7: Member Digital Channels</span>
           </div>
         </div>
       </nav>
@@ -194,7 +226,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
         <div className="flex items-center justify-between text-[11px] text-slate-400">
           <div className="flex items-center space-x-1.5">
             <GitBranch className="w-3.5 h-3.5 text-brand-400" />
-            <span>Phases 1-3 Active</span>
+            <span>Phases 1-5 Active</span>
           </div>
           <span className="bg-emerald-950 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded border border-emerald-800 font-mono">
             ACID Safe

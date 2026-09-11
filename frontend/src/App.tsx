@@ -15,6 +15,7 @@ import { TellerCounter } from './pages/Teller/TellerCounter';
 import { FundTransfer } from './pages/Transfers/FundTransfer';
 import { LoansHub } from './pages/Loans/LoansHub';
 import { CollectionsHub } from './pages/Collections/CollectionsHub';
+import { GLHub } from './pages/GeneralLedger/GLHub';
 import api from './api/client';
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -155,6 +156,16 @@ export const App: React.FC = () => {
             element={
               <AppLayout>
                 <CollectionsHub />
+              </AppLayout>
+            }
+          />
+
+          {/* Phase 5 Routes */}
+          <Route
+            path="/gl"
+            element={
+              <AppLayout>
+                <GLHub />
               </AppLayout>
             }
           />

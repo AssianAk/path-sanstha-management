@@ -626,7 +626,25 @@ model LoanNotice {
 }
 
 // -------------------------------------------------------------
-// 8. AUDIT TRAIL & SYSTEM CONFIGURATION
+// 8. PHASE 5: GENERAL LEDGER & CHART OF ACCOUNTS (SECTION 21)
+// -------------------------------------------------------------
+
+model GLAccount {
+  id              String      @id @default(uuid())
+  code            String      @unique // GL-1001, GL-2001, GL-3001, GL-4001, GL-5001
+  name            String
+  category        String      // ASSET, LIABILITY, EQUITY, INCOME, EXPENSE
+  parentCode      String?
+  normalBalance   String      // DEBIT, CREDIT
+  description     String?
+  isLeaf          Boolean     @default(true)
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+// -------------------------------------------------------------
+// 9. AUDIT TRAIL & SYSTEM CONFIGURATION
 // -------------------------------------------------------------
 
 model AuditLog {

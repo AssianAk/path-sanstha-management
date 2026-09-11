@@ -133,6 +133,7 @@ async function main() {
     { username: 'maker_pune', email: 'maker.pune@samruddhibank.in', password: 'Maker@123', fullName: 'Snehal Joshi (Maker)', roleCode: 'MAKER', branchId: b1.id },
     { username: 'checker_pune', email: 'checker.pune@samruddhibank.in', password: 'Checker@123', fullName: 'Milind Kulkarni (Checker)', roleCode: 'CHECKER', branchId: b1.id },
     { username: 'collector_pune', email: 'collector.pune@samruddhibank.in', password: 'Collector@123', fullName: 'Rajesh Gaikwad (Recovery)', roleCode: 'COLLECTION_OFFICER', branchId: b1.id },
+    { username: 'accountant_pune', email: 'accountant.pune@samruddhibank.in', password: 'Accountant@123', fullName: 'Vinayak Joshi (Chief Accountant)', roleCode: 'ACCOUNTANT', branchId: b1.id },
     { username: 'auditor', email: 'auditor@samruddhibank.in', password: 'Auditor@123', fullName: 'Pradeep Walvekar (Auditor)', roleCode: 'AUDITOR', branchId: b1.id }
   ];
 
@@ -727,7 +728,134 @@ async function main() {
     console.log(`✓ Seeded Phase 4 Recovery Action & Demand Notice (NOT-2026-00001)`);
   }
 
-  console.log('🎉 Seed complete successfully for Phase 1, 2, 3 & 4!');
+  // 15. Phase 5: Chart of Accounts (COA) Master (Section 21)
+  const coaData = [
+    // 1000s: Assets
+    { code: 'GL-1001', name: 'Cash in Hand & Counter Till', category: 'ASSET', normalBalance: 'DEBIT', description: 'Physical cash balance in branch tills and vault' },
+    { code: 'GL-1002', name: 'Loans & Advances to Members', category: 'ASSET', normalBalance: 'DEBIT', description: 'Principal outstanding of member loans' },
+    { code: 'GL-1003', name: 'Balances with Scheduled Banks & Apex Bank', category: 'ASSET', normalBalance: 'DEBIT', description: 'Current and deposit accounts with external banking partners' },
+    { code: 'GL-1004', name: 'Statutory Liquidity Ratio (SLR) Investments', category: 'ASSET', normalBalance: 'DEBIT', description: 'Government bonds and approved securities' },
+    { code: 'GL-1005', name: 'Premises, Furniture & IT Assets', category: 'ASSET', normalBalance: 'DEBIT', description: 'Fixed physical and technology infrastructure' },
+
+    // 2000s: Liabilities
+    { code: 'GL-2001', name: 'Savings Bank (SB) Deposits Liability', category: 'LIABILITY', normalBalance: 'CREDIT', description: 'Customer savings deposits with withdrawal facility' },
+    { code: 'GL-2002', name: 'Current Account (CA) Deposits Liability', category: 'LIABILITY', normalBalance: 'CREDIT', description: 'Operational business demand deposits' },
+    { code: 'GL-2003', name: 'Fixed Term Deposits (FD) Liability', category: 'LIABILITY', normalBalance: 'CREDIT', description: 'Time liabilities with fixed tenure and interest' },
+    { code: 'GL-2004', name: 'Recurring Deposits (RD) Liability', category: 'LIABILITY', normalBalance: 'CREDIT', description: 'Monthly installment savings scheme liabilities' },
+    { code: 'GL-2099', name: 'Sundry Creditors & Accrued Expenses', category: 'LIABILITY', normalBalance: 'CREDIT', description: 'Unsettled bills and other short-term liabilities' },
+
+    // 3000s: Equity & Reserve Funds
+    { code: 'GL-3001', name: 'Subscribed & Paid-up Member Share Capital', category: 'EQUITY', normalBalance: 'CREDIT', description: 'Ordinary voting shares held by cooperative members' },
+    { code: 'GL-3002', name: 'Statutory Reserve Fund (Co-op 25% Allocation)', category: 'EQUITY', normalBalance: 'CREDIT', description: 'Indivisible reserve mandated by State Co-op Societies Act' },
+    { code: 'GL-3003', name: 'Bad & Doubtful Debts Reserve (BDDR)', category: 'EQUITY', normalBalance: 'CREDIT', description: 'Provisioning reserve created out of profits for asset risk' },
+    { code: 'GL-3004', name: 'Building & Co-operative Development Fund', category: 'EQUITY', normalBalance: 'CREDIT', description: 'Capital reserve earmarked for branch expansion' },
+
+    // 4000s: Operating Income
+    { code: 'GL-4001', name: 'Interest Income on Loans & Advances', category: 'INCOME', normalBalance: 'CREDIT', description: 'Interest accrued and realized on loan portfolio' },
+    { code: 'GL-4002', name: 'Loan Processing Fees & Appraisal Charges', category: 'INCOME', normalBalance: 'CREDIT', description: 'Upfront service charges realized during disbursement' },
+    { code: 'GL-4003', name: 'Late Payment Penalties & Notice Fees', category: 'INCOME', normalBalance: 'CREDIT', description: 'Penal interest and demand notice charges collected' },
+    { code: 'GL-4004', name: 'Commission & Miscellaneous Banking Income', category: 'INCOME', normalBalance: 'CREDIT', description: 'Locker rent, RTGS/NEFT handling, and incidental income' },
+
+    // 5000s: Operating Expenses
+    { code: 'GL-5001', name: 'Interest Paid on Customer Deposits', category: 'EXPENSE', normalBalance: 'DEBIT', description: 'Interest paid or credited on Savings, FD and RD accounts' },
+    { code: 'GL-5002', name: 'Staff Salaries, Allowances & Benefits', category: 'EXPENSE', normalBalance: 'DEBIT', description: 'Monthly compensation for bank employees' },
+    { code: 'GL-5003', name: 'Branch Premises Rent, Electricity & Overhead', category: 'EXPENSE', normalBalance: 'DEBIT', description: 'Operating facilities, utilities, and branch overhead' },
+    { code: 'GL-5004', name: 'Provision for Non-Performing Assets (NPA)', category: 'EXPENSE', normalBalance: 'DEBIT', description: 'P&L charge for regulatory credit loss provisioning' },
+    { code: 'GL-5005', name: 'Audit Fees, Legal & Regulatory Charges', category: 'EXPENSE', normalBalance: 'DEBIT', description: 'Statutory audit, inspection, and legal compliance' }
+  ];
+
+  for (const c of coaData) {
+    await prisma.gLAccount.upsert({
+      where: { code: c.code },
+      update: { name: c.name, category: c.category, normalBalance: c.normalBalance, description: c.description },
+      create: c
+    });
+  }
+  console.log(`✓ Seeded ${coaData.length} General Ledger Accounts in Chart of Accounts (COA)`);
+
+  // Seed Initial Capital & Reserve Opening Transaction
+  const accountantId = userMap.get('accountant_pune')!;
+  const equityTxn = await prisma.transaction.upsert({
+    where: { transactionReference: 'TXN-20260911-00000' },
+    update: {},
+    create: {
+      transactionReference: 'TXN-20260911-00000',
+      transactionType: 'OPENING_EQUITY_CAPITAL',
+      channel: 'HEAD_OFFICE',
+      branchId: b1.id,
+      businessDate: todayStr,
+      amount: 700000.0,
+      narration: 'Initial Paid-up Member Share Capital & Statutory Reserve Fund Allocation',
+      status: 'POSTED',
+      makerUserId: accountantId,
+      checkerUserId: bmId,
+      journalLines: {
+        create: [
+          {
+            glAccountCode: 'GL-1001',
+            glAccountName: 'Cash in Hand & Counter Till',
+            entryType: 'DEBIT',
+            amount: 700000.0,
+            businessDate: todayStr
+          },
+          {
+            glAccountCode: 'GL-3001',
+            glAccountName: 'Subscribed & Paid-up Member Share Capital',
+            entryType: 'CREDIT',
+            amount: 500000.0,
+            businessDate: todayStr
+          },
+          {
+            glAccountCode: 'GL-3002',
+            glAccountName: 'Statutory Reserve Fund (Co-op 25% Allocation)',
+            entryType: 'CREDIT',
+            amount: 200000.0,
+            businessDate: todayStr
+          }
+        ]
+      }
+    }
+  });
+
+  // Seed Sample Operating Overhead Expense Voucher
+  const expTxn = await prisma.transaction.upsert({
+    where: { transactionReference: 'TXN-20260911-00005' },
+    update: {},
+    create: {
+      transactionReference: 'TXN-20260911-00005',
+      transactionType: 'JOURNAL_VOUCHER',
+      channel: 'BRANCH_ACCOUNTING',
+      branchId: b1.id,
+      businessDate: todayStr,
+      amount: 15000.0,
+      narration: 'Payment of Monthly Branch Premises Rent & Electricity Bill for September 2026',
+      status: 'POSTED',
+      makerUserId: accountantId,
+      checkerUserId: bmId,
+      journalLines: {
+        create: [
+          {
+            glAccountCode: 'GL-5003',
+            glAccountName: 'Branch Premises Rent, Electricity & Overhead',
+            entryType: 'DEBIT',
+            amount: 15000.0,
+            businessDate: todayStr
+          },
+          {
+            glAccountCode: 'GL-1001',
+            glAccountName: 'Cash in Hand & Counter Till',
+            entryType: 'CREDIT',
+            amount: 15000.0,
+            businessDate: todayStr
+          }
+        ]
+      }
+    }
+  });
+
+  console.log(`✓ Seeded Balanced Opening Capital Txn: ${equityTxn.transactionReference} (Total Debits: ₹700k == Total Credits: ₹700k)`);
+  console.log(`✓ Seeded Balanced Overhead Expense Voucher: ${expTxn.transactionReference} (Total Debits: ₹15k == Total Credits: ₹15k)`);
+  console.log('🎉 Seed complete successfully for Phase 1, 2, 3, 4 & 5!');
 }
 
 main()
