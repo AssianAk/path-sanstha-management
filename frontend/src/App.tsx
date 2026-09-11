@@ -10,6 +10,9 @@ import { KycQueue } from './pages/KYC/KycQueue';
 import { BranchList } from './pages/Branches/BranchList';
 import { AuditLogList } from './pages/Audit/AuditLogList';
 import { SettingsPage } from './pages/Settings/SettingsPage';
+import { AccountList } from './pages/Accounts/AccountList';
+import { TellerCounter } from './pages/Teller/TellerCounter';
+import { FundTransfer } from './pages/Transfers/FundTransfer';
 import api from './api/client';
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -66,6 +69,7 @@ export const App: React.FC = () => {
               </AppLayout>
             }
           />
+          {/* Phase 1 Routes */}
           <Route
             path="/customers"
             element={
@@ -106,6 +110,33 @@ export const App: React.FC = () => {
               </AppLayout>
             }
           />
+
+          {/* Phase 2 Routes */}
+          <Route
+            path="/accounts"
+            element={
+              <AppLayout>
+                <AccountList />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/teller"
+            element={
+              <AppLayout>
+                <TellerCounter />
+              </AppLayout>
+            }
+          />
+          <Route
+            path="/transfers"
+            element={
+              <AppLayout>
+                <FundTransfer />
+              </AppLayout>
+            }
+          />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

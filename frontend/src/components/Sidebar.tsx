@@ -7,7 +7,9 @@ import {
   Building2,
   FileSpreadsheet,
   Settings,
-  ShieldAlert,
+  CreditCard,
+  Banknote,
+  ArrowLeftRight,
   GitBranch
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,13 +21,19 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) => {
   const { user } = useAuth();
 
-  const navItems = [
+  const phase1Items = [
     { to: '/', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/customers', label: 'Customer & Member', icon: Users },
     { to: '/kyc', label: 'KYC & Approvals', icon: CheckSquare, badge: pendingApprovalsCount },
     { to: '/branches', label: 'Branch & Business Date', icon: Building2 },
     { to: '/audit', label: 'Audit Trail', icon: FileSpreadsheet },
     { to: '/settings', label: 'System Settings', icon: Settings },
+  ];
+
+  const phase2Items = [
+    { to: '/accounts', label: 'Accounts & Deposits', icon: CreditCard },
+    { to: '/teller', label: 'Teller & Cash Counter', icon: Banknote },
+    { to: '/transfers', label: 'Fund Transfers', icon: ArrowLeftRight },
   ];
 
   return (
@@ -43,11 +51,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
 
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
-        <div className="px-3 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+        {/* Phase 1 Group */}
+        <div className="px-3 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
           Phase 1 - Foundation
         </div>
 
-        {navItems.map((item) => {
+        {phase1Items.map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
@@ -75,15 +84,39 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
           );
         })}
 
+        {/* Phase 2 Group */}
+        <div className="pt-4 px-3 py-1.5 text-[10px] font-semibold text-emerald-400 uppercase tracking-wider flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Phase 2 - Accounts & CASA</span>
+        </div>
+
+        {phase2Items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                  isActive
+                    ? 'bg-emerald-600 text-white font-semibold shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`
+              }
+            >
+              <div className="flex items-center space-x-3">
+                <Icon className="w-4 h-4" />
+                <span>{item.label}</span>
+              </div>
+            </NavLink>
+          );
+        })}
+
         {/* Future Phases Preview */}
-        <div className="pt-6 px-3 py-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="pt-5 px-3 py-1.5 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
           Roadmap Modules
         </div>
-        <div className="px-3 space-y-2 text-xs text-slate-500">
-          <div className="flex items-center space-x-2 py-1">
-            <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-            <span>Phase 2: CASA & Deposits</span>
-          </div>
+        <div className="px-3 space-y-1.5 text-xs text-slate-500">
           <div className="flex items-center space-x-2 py-1">
             <span className="w-2 h-2 rounded-full bg-slate-700"></span>
             <span>Phase 3: Loan Servicing</span>
@@ -104,7 +137,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
         <div className="flex items-center justify-between text-[11px] text-slate-400">
           <div className="flex items-center space-x-1.5">
             <GitBranch className="w-3.5 h-3.5 text-brand-400" />
-            <span>v1.0.0 (Git Ready)</span>
+            <span>Phase 1 & 2 Active</span>
           </div>
           <span className="bg-emerald-950 text-emerald-400 text-[10px] px-1.5 py-0.5 rounded border border-emerald-800 font-mono">
             ACID Safe

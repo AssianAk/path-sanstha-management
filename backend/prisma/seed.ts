@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed for Co-operative Bank / Pat Sanstha CBS...');
+  console.log('🌱 Starting database seed for Co-operative Bank / Pat Sanstha CBS (Phase 1 & 2)...');
 
   // 1. Roles
   const rolesData = [
@@ -105,7 +105,20 @@ async function main() {
   });
   console.log('✓ Seeded Branches: BR001, BR002, BR003');
 
-  // 4. Business Date for Branches (controlled business date)
+  // Counters for BR001
+  const counter1 = await prisma.branchCounter.upsert({
+    where: { id: 'cntr-001' },
+    update: {},
+    create: {
+      id: 'cntr-001',
+      branchId: b1.id,
+      counterNumber: 'C-01',
+      counterName: 'Cash Counter 1 (Teller)',
+      isActive: true
+    }
+  });
+
+  // 4. Business Date for Branches
   const todayStr = '2026-09-11';
   await prisma.businessDate.upsert({
     where: { branchId_currentDate: { branchId: b1.id, currentDate: todayStr } },
@@ -122,7 +135,6 @@ async function main() {
     update: {},
     create: { branchId: b3.id, currentDate: todayStr, status: 'OPEN' }
   });
-  console.log(`✓ Seeded Business Date (${todayStr}) for Branches`);
 
   // 5. Users
   const passwordSalt = await bcrypt.genSalt(10);
@@ -171,9 +183,8 @@ async function main() {
       create: s
     });
   }
-  console.log(`✓ Seeded ${settings.length} System Settings`);
 
-  // 7. Seed Sample Active Member Customer
+  // 7. Seed Sample Customers
   const makerId = userMap.get('maker_pune')!;
   const checkerId = userMap.get('checker_pune')!;
 
@@ -211,7 +222,6 @@ async function main() {
           {
             addressType: 'PERMANENT',
             line1: 'Bungalow 14, Sahakar Colony',
-            line2: 'Near Grampanchayat Road',
             city: 'Pune',
             state: 'Maharashtra',
             pincode: '411016',
@@ -224,9 +234,7 @@ async function main() {
           {
             name: 'Sunita Rajesh Kulkarni',
             relationship: 'Wife',
-            dob: '1988-11-04',
             age: 38,
-            phone: '9822098765',
             allocationPercentage: 100.0,
             isMinor: false
           }
@@ -255,32 +263,22 @@ async function main() {
             verifiedByUserId: checkerId,
             verifiedAt: new Date(),
             verificationRemarks: 'PAN verified with Income Tax NSDL database match.'
-          },
-          {
-            documentType: 'AADHAAR',
-            documentNumber: 'XXXXXXXX4589',
-            version: 1,
-            status: 'VERIFIED',
-            verifiedByUserId: checkerId,
-            verifiedAt: new Date(),
-            verificationRemarks: 'UIDAI offline paperless e-KYC verified.'
           }
         ]
       }
     }
   });
 
-  // 8. Seed Customer Pending Checker Approval (for immediate testing in UI)
-  const pendingCustomer = await prisma.customer.upsert({
+  const member2 = await prisma.customer.upsert({
     where: { customerNumber: 'CUST-2026-00002' },
-    update: {},
+    update: { status: 'ACTIVE', memberStatus: 'ACTIVE' },
     create: {
       customerNumber: 'CUST-2026-00002',
       customerType: 'INDIVIDUAL',
       isMember: true,
       memberNumber: 'MEM-2026-00002',
       membershipDate: new Date('2026-09-10'),
-      memberStatus: 'DORMANT',
+      memberStatus: 'ACTIVE',
       title: 'Smt',
       firstName: 'Priya',
       middleName: 'Ramesh',
@@ -289,7 +287,7 @@ async function main() {
       gender: 'FEMALE',
       maritalStatus: 'MARRIED',
       fatherOrSpouseName: 'Ramesh Patil',
-      occupation: 'Small Business / Retail',
+      occupation: 'Retail Entrepreneur',
       annualIncome: 480000,
       pan: 'BNYPP9876K',
       aadhaarLast4: '7721',
@@ -297,102 +295,236 @@ async function main() {
       email: 'priya.patil@example.com',
       branchId: b1.id,
       riskCategory: 'LOW',
-      status: 'PENDING_KYC',
+      status: 'ACTIVE',
       createdByUserId: makerId,
+      approvedByUserId: checkerId,
       addresses: {
         create: [
           {
             addressType: 'CURRENT',
             line1: 'Flat 402, Shreeram Residency',
-            line2: 'Karve Road',
             city: 'Pune',
             state: 'Maharashtra',
             pincode: '411038',
             isPrimary: true
           }
         ]
+      }
+    }
+  });
+
+  // -------------------------------------------------------------
+  // 8. PHASE 2: PRODUCTS SEEDING (SAVINGS, CURRENT, FD, RD)
+  // -------------------------------------------------------------
+  const productsData = [
+    {
+      code: 'SB001',
+      name: 'Samruddhi Regular Savings Bank',
+      category: 'SAVINGS',
+      description: 'Standard liquid deposit account with quarterly interest payout',
+      minBalance: 500.0,
+      interestRate: 3.5,
+      compoundingFrequency: 'QUARTERLY',
+      tenureMinMonths: 0,
+      tenureMaxMonths: 0,
+      glAccountCode: 'GL-2001',
+      isActive: true
+    },
+    {
+      code: 'CA001',
+      name: 'Samruddhi Business Current Account',
+      category: 'CURRENT',
+      description: 'Operational business checking account with high transaction limits',
+      minBalance: 5000.0,
+      interestRate: 0.0,
+      compoundingFrequency: 'NONE',
+      tenureMinMonths: 0,
+      tenureMaxMonths: 0,
+      glAccountCode: 'GL-2002',
+      isActive: true
+    },
+    {
+      code: 'FD001',
+      name: 'Samruddhi Term Deposit (FD)',
+      category: 'FIXED_DEPOSIT',
+      description: 'High return fixed term deposit with compounding interest',
+      minBalance: 10000.0,
+      interestRate: 7.25,
+      compoundingFrequency: 'QUARTERLY',
+      tenureMinMonths: 6,
+      tenureMaxMonths: 120,
+      prematurePenaltyRate: 1.0,
+      glAccountCode: 'GL-2003',
+      isActive: true
+    },
+    {
+      code: 'RD001',
+      name: 'Lakhpati Recurring Deposit (RD)',
+      category: 'RECURRING_DEPOSIT',
+      description: 'Monthly disciplined savings scheme with cumulative interest',
+      minBalance: 1000.0,
+      interestRate: 7.0,
+      compoundingFrequency: 'QUARTERLY',
+      tenureMinMonths: 12,
+      tenureMaxMonths: 120,
+      prematurePenaltyRate: 1.0,
+      glAccountCode: 'GL-2004',
+      isActive: true
+    }
+  ];
+
+  const productMap = new Map<string, string>();
+  for (const p of productsData) {
+    const prod = await prisma.product.upsert({
+      where: { code: p.code },
+      update: { name: p.name, interestRate: p.interestRate, minBalance: p.minBalance },
+      create: p
+    });
+    productMap.set(p.code, prod.id);
+  }
+  console.log(`✓ Seeded ${productsData.length} Deposit Products (SB, CA, FD, RD)`);
+
+  // -------------------------------------------------------------
+  // 9. PHASE 2: SEED ACTIVE ACCOUNTS
+  // -------------------------------------------------------------
+  // Account 1: Rajesh Kulkarni Savings Account
+  const sbAcc1 = await prisma.account.upsert({
+    where: { accountNumber: 'SB-2026-00001' },
+    update: {},
+    create: {
+      accountNumber: 'SB-2026-00001',
+      customerId: member1.id,
+      productId: productMap.get('SB001')!,
+      branchId: b1.id,
+      currency: 'INR',
+      ledgerBalance: 15000.0,
+      availableBalance: 15000.0,
+      status: 'ACTIVE',
+      nomineeName: 'Sunita Rajesh Kulkarni',
+      nomineeRelation: 'Wife'
+    }
+  });
+
+  // Account 2: Rajesh Kulkarni Fixed Deposit
+  const fdAcc1 = await prisma.account.upsert({
+    where: { accountNumber: 'FD-2026-00001' },
+    update: {},
+    create: {
+      accountNumber: 'FD-2026-00001',
+      customerId: member1.id,
+      productId: productMap.get('FD001')!,
+      branchId: b1.id,
+      currency: 'INR',
+      ledgerBalance: 100000.0,
+      availableBalance: 0.0, // Term deposits have available balance 0 until liquidated
+      status: 'ACTIVE',
+      nomineeName: 'Sunita Rajesh Kulkarni',
+      nomineeRelation: 'Wife',
+      termDepositDetail: {
+        create: {
+          depositAmount: 100000.0,
+          tenureMonths: 12,
+          interestRate: 7.25,
+          maturityDate: '2027-09-11',
+          maturityAmount: 107450.0,
+          payoutType: 'ON_MATURITY',
+          autoRenewal: true
+        }
+      }
+    }
+  });
+
+  // Account 3: Priya Patil Savings Account
+  const sbAcc2 = await prisma.account.upsert({
+    where: { accountNumber: 'SB-2026-00002' },
+    update: {},
+    create: {
+      accountNumber: 'SB-2026-00002',
+      customerId: member2.id,
+      productId: productMap.get('SB001')!,
+      branchId: b1.id,
+      currency: 'INR',
+      ledgerBalance: 5000.0,
+      availableBalance: 5000.0,
+      status: 'ACTIVE',
+      nomineeName: 'Aarav Ramesh Patil',
+      nomineeRelation: 'Son'
+    }
+  });
+  console.log('✓ Seeded Accounts: SB-2026-00001, FD-2026-00001, SB-2026-00002');
+
+  // -------------------------------------------------------------
+  // 10. PHASE 2: TELLER TILL SESSION (BR001)
+  // -------------------------------------------------------------
+  const tellerUser = await prisma.user.findUnique({ where: { username: 'maker_pune' } });
+  const till = await prisma.tellerTill.upsert({
+    where: { id: 'till-br001-today' },
+    update: {},
+    create: {
+      id: 'till-br001-today',
+      branchId: b1.id,
+      userId: tellerUser!.id,
+      counterId: counter1.id,
+      businessDate: todayStr,
+      openingBalance: 25000.0,
+      totalCashReceived: 15000.0,
+      totalCashPaid: 0.0,
+      currentBalance: 40000.0,
+      status: 'OPEN'
+    }
+  });
+  console.log(`✓ Seeded Active Teller Till for Counter ${counter1.counterNumber}`);
+
+  // -------------------------------------------------------------
+  // 11. INITIAL BALANCED FINANCIAL TRANSACTION (Section 21 Pattern)
+  // -------------------------------------------------------------
+  const initialTxn = await prisma.transaction.upsert({
+    where: { transactionReference: 'TXN-20260911-00001' },
+    update: {},
+    create: {
+      transactionReference: 'TXN-20260911-00001',
+      transactionType: 'CASH_DEPOSIT',
+      channel: 'BRANCH_TELLER',
+      branchId: b1.id,
+      businessDate: todayStr,
+      destinationAccountId: sbAcc1.id,
+      amount: 15000.0,
+      currency: 'INR',
+      narration: 'Initial cash deposit at account opening',
+      status: 'POSTED',
+      makerUserId: makerId,
+      checkerUserId: checkerId,
+      tellerTillId: till.id,
+      denomination: {
+        create: {
+          note500: 30,
+          totalAmount: 15000.0
+        }
       },
-      nominees: {
+      journalLines: {
         create: [
           {
-            name: 'Aarav Ramesh Patil',
-            relationship: 'Son',
-            age: 8,
-            allocationPercentage: 100.0,
-            isMinor: true,
-            guardianName: 'Ramesh Patil',
-            guardianRelation: 'Father'
-          }
-        ]
-      },
-      kycDocuments: {
-        create: [
-          {
-            documentType: 'PAN',
-            documentNumber: 'BNYPP9876K',
-            version: 1,
-            status: 'PENDING',
-            verificationRemarks: 'Submitted by Maker for PAN verification'
+            glAccountCode: 'GL-1001',
+            glAccountName: 'Cash in Hand / Branch Vault',
+            entryType: 'DEBIT',
+            amount: 15000.0,
+            businessDate: todayStr
           },
           {
-            documentType: 'AADHAAR',
-            documentNumber: 'XXXXXXXX7721',
-            version: 1,
-            status: 'PENDING',
-            verificationRemarks: 'Submitted by Maker for Address Proof'
+            glAccountCode: 'GL-2001',
+            glAccountName: 'Customer Deposit Liability (Savings)',
+            entryType: 'CREDIT',
+            amount: 15000.0,
+            businessDate: todayStr,
+            accountId: sbAcc1.id
           }
         ]
       }
     }
   });
+  console.log(`✓ Seeded Balanced Financial Transaction: ${initialTxn.transactionReference} (Total Debits == Total Credits = ₹15,000)`);
 
-  // Create Approval Queue item for Priya Patil
-  const existingQueue = await prisma.approvalQueue.findFirst({
-    where: { entityId: pendingCustomer.id, status: 'PENDING' }
-  });
-
-  if (!existingQueue) {
-    await prisma.approvalQueue.create({
-      data: {
-        module: 'KYC',
-        entityId: pendingCustomer.id,
-        actionType: 'VERIFY',
-        payloadJson: JSON.stringify({
-          customerId: pendingCustomer.id,
-          customerName: 'Priya Ramesh Patil',
-          customerNumber: pendingCustomer.customerNumber,
-          memberNumber: pendingCustomer.memberNumber,
-          riskCategory: 'LOW',
-          documents: ['PAN: BNYPP9876K', 'AADHAAR: XXXXXXXX7721']
-        }),
-        status: 'PENDING',
-        makerUserId: makerId,
-        makerRemarks: 'Documents checked and uploaded. Ready for Checker verification.',
-        branchId: b1.id
-      }
-    });
-  }
-
-  // 9. Initial Audit Log
-  await prisma.auditLog.create({
-    data: {
-      userId: userMap.get('superadmin'),
-      username: 'superadmin',
-      userRole: 'SUPER_ADMIN',
-      branchId: b1.id,
-      action: 'CREATE',
-      entityName: 'SYSTEM_INITIALIZATION',
-      entityId: org.id,
-      afterStateJson: JSON.stringify({ message: 'Co-operative Bank CBS Phase 1 initialized and seeded.' }),
-      businessDate: todayStr,
-      ipAddress: '127.0.0.1',
-      userAgent: 'System Seed CLI'
-    }
-  });
-
-  console.log(`✓ Sample Member Created: ${member1.customerNumber} (${member1.firstName} ${member1.lastName})`);
-  console.log(`✓ Pending KYC Member Created: ${pendingCustomer.customerNumber} (${pendingCustomer.firstName} ${pendingCustomer.lastName}) in ApprovalQueue`);
-  console.log('🎉 Seed complete successfully!');
+  console.log('🎉 Seed complete successfully for Phase 1 & 2!');
 }
 
 main()

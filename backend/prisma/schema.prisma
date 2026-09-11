@@ -24,8 +24,8 @@ model Role {
 
 model Permission {
   id          String           @id @default(uuid())
-  code        String           @unique // e.g. customer:create, kyc:approve
-  module      String           // AUTH, CUSTOMER, KYC, BRANCH, AUDIT, SETTINGS
+  code        String           @unique
+  module      String
   description String
   roles       RolePermission[]
 }
@@ -61,6 +61,9 @@ model User {
   makerRequests    ApprovalQueue[]  @relation("MakerRequests")
   checkerRequests  ApprovalQueue[]  @relation("CheckerRequests")
   assignedCounters BranchCounter[]
+  tellerTills      TellerTill[]
+  makerTransactions Transaction[]   @relation("TransactionMaker")
+  checkerTransactions Transaction[] @relation("TransactionChecker")
 }
 
 // -------------------------------------------------------------
@@ -86,7 +89,7 @@ model Branch {
   id             String          @id @default(uuid())
   organizationId String
   organization   Organization    @relation(fields: [organizationId], references: [id])
-  code           String          @unique // e.g. BR001, BR002
+  code           String          @unique
   name           String
   ifscCode       String?
   micrCode       String?
@@ -102,20 +105,24 @@ model Branch {
   businessDates  BusinessDate[]
   customers      Customer[]
   approvalQueues ApprovalQueue[]
+  accounts       Account[]
+  tellerTills    TellerTill[]
+  transactions   Transaction[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
 
 model BranchCounter {
-  id            String   @id @default(uuid())
+  id            String       @id @default(uuid())
   branchId      String
-  branch        Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branch        Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
   counterNumber String
   counterName   String
   assignedUserId String?
-  assignedUser  User?    @relation(fields: [assignedUserId], references: [id])
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  assignedUser  User?        @relation(fields: [assignedUserId], references: [id])
+  isActive      Boolean      @default(true)
+  tellerTills   TellerTill[]
+  createdAt     DateTime     @default(now())
 }
 
 model BusinessDate {
@@ -138,20 +145,20 @@ model BusinessDate {
 
 model Customer {
   id                 String            @id @default(uuid())
-  customerNumber     String            @unique // CUST-YYYY-XXXXX
-  customerType       String            @default("INDIVIDUAL") // INDIVIDUAL, JOINT, MINOR, SOLE_PROPRIETOR, PARTNERSHIP, COMPANY
+  customerNumber     String            @unique
+  customerType       String            @default("INDIVIDUAL")
   isMember           Boolean           @default(false)
-  memberNumber       String?           @unique // MEM-YYYY-XXXXX
+  memberNumber       String?           @unique
   membershipDate     DateTime?
-  memberStatus       String?           // ACTIVE, DORMANT, SUSPENDED, CLOSED
+  memberStatus       String?
   
   title              String            @default("Mr.")
   firstName          String
   middleName         String?
   lastName           String
-  dob                String            // YYYY-MM-DD
-  gender             String            // MALE, FEMALE, OTHER
-  maritalStatus      String?           // SINGLE, MARRIED, WIDOWED, DIVORCED
+  dob                String
+  gender             String
+  maritalStatus      String?
   fatherOrSpouseName String?
   occupation         String?
   annualIncome       Float?            @default(0)
@@ -162,8 +169,8 @@ model Customer {
 
   branchId           String
   branch             Branch            @relation(fields: [branchId], references: [id])
-  riskCategory       String            @default("LOW") // LOW, MEDIUM, HIGH
-  status             String            @default("PENDING_KYC") // PROSPECT, PENDING_KYC, ACTIVE, INACTIVE, CLOSED
+  riskCategory       String            @default("LOW")
+  status             String            @default("PENDING_KYC")
 
   createdByUserId    String?
   createdBy          User?             @relation("CustomerCreatedBy", fields: [createdByUserId], references: [id])
@@ -174,6 +181,7 @@ model Customer {
   nominees           CustomerNominee[]
   kycDocuments       KycDocument[]
   memberShares       MemberShare[]
+  accounts           Account[]
   
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -183,7 +191,7 @@ model CustomerAddress {
   id          String   @id @default(uuid())
   customerId  String
   customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  addressType String   // CURRENT, PERMANENT, OFFICE
+  addressType String
   line1       String
   line2       String?
   landmark    String?
@@ -221,23 +229,19 @@ model MemberShare {
   faceValue              Float    @default(10.0)
   totalAmount            Float
   issueDate              DateTime @default(now())
-  status                 String   @default("ACTIVE") // ACTIVE, TRANSFERRED, SURRENDERED
+  status                 String   @default("ACTIVE")
 }
-
-// -------------------------------------------------------------
-// 4. KYC & MAKER-CHECKER WORKFLOW
-// -------------------------------------------------------------
 
 model KycDocument {
   id                  String    @id @default(uuid())
   customerId          String
   customer            Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  documentType        String    // AADHAAR, PAN, VOTER_ID, PASSPORT, DRIVING_LICENSE, PHOTO, SIGNATURE
+  documentType        String
   documentNumber      String
-  documentUrl         String?   // Base64 or local storage path
+  documentUrl         String?
   mimeType            String?   @default("application/pdf")
   version             Int       @default(1)
-  status              String    @default("PENDING") // PENDING, VERIFIED, REJECTED, SUPERSEDED
+  status              String    @default("PENDING")
   verifiedByUserId    String?
   verifiedAt          DateTime?
   verificationRemarks String?
@@ -249,9 +253,9 @@ model ApprovalQueue {
   id            String    @id @default(uuid())
   module        String    // CUSTOMER, KYC, MEMBER, ACCOUNT, TRANSACTION
   entityId      String
-  actionType    String    // CREATE, UPDATE, VERIFY, STATUS_CHANGE
-  payloadJson   String    // Serialized snapshot or request details
-  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED, SENT_BACK
+  actionType    String
+  payloadJson   String
+  status        String    @default("PENDING")
   makerUserId   String
   maker         User      @relation("MakerRequests", fields: [makerUserId], references: [id])
   makerRemarks  String?
@@ -265,7 +269,156 @@ model ApprovalQueue {
 }
 
 // -------------------------------------------------------------
-// 5. AUDIT TRAIL & SYSTEM CONFIGURATION
+// 6. PHASE 2: PRODUCTS, CASA & DEPOSITS (SECTIONS 6 & 29)
+// -------------------------------------------------------------
+
+model Product {
+  id                    String    @id @default(uuid())
+  code                  String    @unique // e.g. SB001, CA001, FD001, RD001
+  name                  String
+  category              String    // SAVINGS, CURRENT, FIXED_DEPOSIT, RECURRING_DEPOSIT
+  description           String?
+  currency              String    @default("INR")
+  minBalance            Float     @default(500.0)
+  interestRate          Float     @default(0.0) // Annual interest rate percentage
+  compoundingFrequency  String    @default("QUARTERLY") // MONTHLY, QUARTERLY, HALF_YEARLY, YEARLY
+  tenureMinMonths       Int?      @default(0)
+  tenureMaxMonths       Int?      @default(120)
+  prematurePenaltyRate  Float?    @default(1.0) // Penalty deducted if broken early
+  glAccountCode         String    // e.g. GL-2001 (Customer Deposit Liability)
+  isActive              Boolean   @default(true)
+  accounts              Account[]
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Account {
+  id                    String              @id @default(uuid())
+  accountNumber         String              @unique // SB-YYYY-XXXXX, CA-..., FD-..., RD-...
+  customerId            String
+  customer              Customer            @relation(fields: [customerId], references: [id])
+  productId             String
+  product               Product             @relation(fields: [productId], references: [id])
+  branchId              String
+  branch                Branch              @relation(fields: [branchId], references: [id])
+  currency              String              @default("INR")
+  ledgerBalance         Float               @default(0.0)
+  availableBalance      Float               @default(0.0)
+  lienAmount            Float               @default(0.0)
+  status                String              @default("ACTIVE") // ACTIVE, DORMANT, FROZEN, CLOSED
+  openedDate            DateTime            @default(now())
+  closedDate            DateTime?
+  interestAccrued       Float               @default(0.0)
+  nomineeName           String?
+  nomineeRelation       String?
+  termDepositDetail     TermDepositDetail?
+  sourceTransactions    Transaction[]       @relation("SourceAccount")
+  destTransactions      Transaction[]       @relation("DestinationAccount")
+  transactionLines      TransactionLine[]
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+}
+
+model TermDepositDetail {
+  id                 String   @id @default(uuid())
+  accountId          String   @unique
+  account            Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  depositAmount      Float
+  tenureMonths       Int
+  interestRate       Float
+  maturityDate       String   // YYYY-MM-DD
+  maturityAmount     Float
+  installmentAmount  Float?   // For Recurring Deposits
+  frequency          String?  @default("MONTHLY") // For RD
+  payoutType         String   @default("ON_MATURITY") // ON_MATURITY, MONTHLY_INTEREST, QUARTERLY_INTEREST
+  autoRenewal        Boolean  @default(false)
+  createdAt          DateTime @default(now())
+}
+
+// -------------------------------------------------------------
+// 7. PHASE 2: TELLER, CASH & TRANSACTION POSTING ENGINE (SECTIONS 7, 8, 21)
+// -------------------------------------------------------------
+
+model TellerTill {
+  id                    String            @id @default(uuid())
+  branchId              String
+  branch                Branch            @relation(fields: [branchId], references: [id])
+  userId                String
+  user                  User              @relation(fields: [userId], references: [id])
+  counterId             String?
+  counter               BranchCounter?    @relation(fields: [counterId], references: [id])
+  businessDate          String            // YYYY-MM-DD
+  openingBalance        Float             @default(0.0)
+  totalCashReceived     Float             @default(0.0)
+  totalCashPaid         Float             @default(0.0)
+  currentBalance        Float             @default(0.0)
+  closingBalance        Float?
+  shortageExcess        Float?            @default(0.0)
+  status                String            @default("OPEN") // OPEN, BALANCED, CLOSED
+  openedAt              DateTime          @default(now())
+  closedAt              DateTime?
+  supervisorApprovedBy  String?
+  transactions          Transaction[]
+}
+
+model Transaction {
+  id                    String              @id @default(uuid())
+  transactionReference  String              @unique // TXN-YYYYMMDD-XXXXX
+  transactionType       String              // CASH_DEPOSIT, CASH_WITHDRAWAL, INTERNAL_TRANSFER, INTEREST_CREDIT
+  channel               String              @default("BRANCH_TELLER") // BRANCH_TELLER, ONLINE, SYSTEM
+  branchId              String
+  branch                Branch              @relation(fields: [branchId], references: [id])
+  businessDate          String              // YYYY-MM-DD
+  sourceAccountId       String?
+  sourceAccount         Account?            @relation("SourceAccount", fields: [sourceAccountId], references: [id])
+  destinationAccountId  String?
+  destinationAccount    Account?            @relation("DestinationAccount", fields: [destinationAccountId], references: [id])
+  amount                Float
+  currency              String              @default("INR")
+  narration             String
+  status                String              @default("POSTED") // POSTED, REVERSED
+  makerUserId           String
+  makerUser             User                @relation("TransactionMaker", fields: [makerUserId], references: [id])
+  checkerUserId         String?
+  checkerUser           User?               @relation("TransactionChecker", fields: [checkerUserId], references: [id])
+  tellerTillId          String?
+  tellerTill            TellerTill?         @relation(fields: [tellerTillId], references: [id])
+  denomination          CashDenomination?
+  journalLines          TransactionLine[]
+  createdAt             DateTime            @default(now())
+}
+
+model TransactionLine {
+  id              String      @id @default(uuid())
+  transactionId   String
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  accountId       String?
+  account         Account?    @relation(fields: [accountId], references: [id])
+  glAccountCode   String      // e.g. GL-1001 (Cash In Hand), GL-2001 (Customer Deposit Liability)
+  glAccountName   String
+  entryType       String      // DEBIT, CREDIT
+  amount          Float
+  businessDate    String      // YYYY-MM-DD
+  createdAt       DateTime    @default(now())
+}
+
+model CashDenomination {
+  id              String      @id @default(uuid())
+  transactionId   String      @unique
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  note2000        Int         @default(0)
+  note500         Int         @default(0)
+  note200         Int         @default(0)
+  note100         Int         @default(0)
+  note50          Int         @default(0)
+  note20          Int         @default(0)
+  note10          Int         @default(0)
+  coins           Int         @default(0)
+  totalAmount     Float
+}
+
+// -------------------------------------------------------------
+// 8. AUDIT TRAIL & SYSTEM CONFIGURATION
 // -------------------------------------------------------------
 
 model AuditLog {
@@ -274,14 +427,14 @@ model AuditLog {
   username        String
   userRole        String
   branchId        String?
-  action          String   // CREATE, UPDATE, DELETE, APPROVE, REJECT, SEND_BACK, LOGIN, LOGOUT
-  entityName      String   // CUSTOMER, KYC, BRANCH, USER, SETTING
+  action          String
+  entityName      String
   entityId        String?
   beforeStateJson String?
   afterStateJson  String?
   ipAddress       String?
   userAgent       String?
-  businessDate    String?  // YYYY-MM-DD
+  businessDate    String?
   timestamp       DateTime @default(now())
 }
 
@@ -290,7 +443,7 @@ model SystemSetting {
   key         String   @unique
   value       String
   description String
-  category    String   // GENERAL, SECURITY, MAKER_CHECKER, EOD
+  category    String
   isEditable  Boolean  @default(true)
   updatedAt   DateTime @updatedAt
 }

@@ -7,10 +7,11 @@ import {
   Clock,
   Building2,
   CheckCircle2,
-  AlertTriangle,
   ArrowRight,
   ShieldCheck,
-  FileText
+  CreditCard,
+  Banknote,
+  ArrowLeftRight
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { MakerCheckerBadge } from '../components/MakerCheckerBadge';
@@ -22,7 +23,10 @@ export const Dashboard: React.FC = () => {
     totalCustomers: 0,
     totalMembers: 0,
     pendingApprovals: 0,
-    totalBranches: 0
+    totalBranches: 0,
+    totalAccounts: 0,
+    totalDepositLiability: 0,
+    tillCash: 0
   });
   const [recentAudits, setRecentAudits] = useState<any[]>([]);
   const [pendingQueue, setPendingQueue] = useState<any[]>([]);
@@ -31,11 +35,13 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        const [custRes, queueRes, branchRes, auditRes] = await Promise.all([
+        const [custRes, queueRes, branchRes, auditRes, accRes, tillRes] = await Promise.all([
           api.get('/customers'),
           api.get('/kyc/queue?status=PENDING'),
           api.get('/org/branches'),
-          api.get('/audit?limit=5')
+          api.get('/audit?limit=5'),
+          api.get('/accounts'),
+          api.get('/teller/till/active')
         ]);
 
         const customers = custRes.data.customers || [];
@@ -43,12 +49,18 @@ export const Dashboard: React.FC = () => {
         const queue = queueRes.data.items || [];
         const branches = branchRes.data.branches || [];
         const audits = auditRes.data.logs || [];
+        const accounts = accRes.data.accounts || [];
+        const totalDeposits = accounts.reduce((acc: number, a: any) => acc + (a.ledgerBalance || 0), 0);
+        const till = tillRes.data.till;
 
         setStats({
           totalCustomers: customers.length,
           totalMembers: members.length,
           pendingApprovals: queue.length,
-          totalBranches: branches.length
+          totalBranches: branches.length,
+          totalAccounts: accounts.length,
+          totalDepositLiability: totalDeposits,
+          tillCash: till?.currentBalance || 0
         });
         setPendingQueue(queue.slice(0, 4));
         setRecentAudits(audits);
@@ -64,40 +76,47 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-slate-900 to-brand-900 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-brand-900 rounded-2xl p-6 text-white shadow-lg flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <div className="inline-flex items-center space-x-2 bg-brand-500/20 text-brand-300 text-xs px-3 py-1 rounded-full font-medium mb-2 border border-brand-400/30">
+          <div className="inline-flex items-center space-x-2 bg-emerald-500/20 text-emerald-300 text-xs px-3 py-1 rounded-full font-medium mb-2 border border-emerald-400/30">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Core Banking Foundation (Phase 1) Active</span>
+            <span>Phase 1 & Phase 2 Active (Foundation + CASA & Deposits)</span>
           </div>
           <h2 className="text-xl font-bold tracking-tight">
             Welcome, {user?.fullName}
           </h2>
           <p className="text-xs text-slate-300 mt-1 max-w-xl">
-            Logged into <span className="font-semibold text-white">{user?.branchName || 'Head Office'}</span> ({user?.branchCode || 'BR001'}). Current operational business date is{' '}
-            <span className="font-mono text-brand-300 font-semibold">{businessDate}</span>.
+            Logged into <span className="font-semibold text-white">{user?.branchName || 'Head Office'}</span> ({user?.branchCode || 'BR001'}). Operational business date is{' '}
+            <span className="font-mono text-emerald-300 font-semibold">{businessDate}</span>.
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
-            to="/customers"
-            className="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center space-x-1.5"
+            to="/accounts"
+            className="px-3.5 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center space-x-1.5"
           >
-            <Users className="w-3.5 h-3.5" />
-            <span>Onboard Member</span>
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>Open Account</span>
           </Link>
           <Link
-            to="/kyc"
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-semibold backdrop-blur-xs transition-colors flex items-center space-x-1.5 border border-white/20"
+            to="/teller"
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors flex items-center space-x-1.5"
           >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Review Queue ({stats.pendingApprovals})</span>
+            <Banknote className="w-3.5 h-3.5" />
+            <span>Cash Counter</span>
+          </Link>
+          <Link
+            to="/transfers"
+            className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-semibold backdrop-blur-xs transition-colors flex items-center space-x-1.5 border border-white/20"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+            <span>Fund Transfer</span>
           </Link>
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards Row 1: Core Institutional & Phase 1 */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Customers */}
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
@@ -135,15 +154,61 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Active Branches */}
+        {/* Operating Branches */}
         <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Operating Branches</p>
             <h3 className="text-2xl font-bold text-slate-900 mt-1">{stats.totalBranches}</h3>
-            <span className="text-[11px] text-emerald-600 font-medium">Controlled Business Date</span>
+            <span className="text-[11px] text-emerald-600 font-medium">Business Date Rollover</span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+            <Building2 className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Cards Row 2: Phase 2 Deposit & Cash Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Total Deposits Book */}
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Total Deposit Liability</p>
+            <h3 className="text-2xl font-bold text-slate-900 mt-1 font-mono">
+              ₹{stats.totalDepositLiability.toLocaleString()}
+            </h3>
+            <span className="text-[11px] text-brand-600 font-medium">{stats.totalAccounts} Active CASA & Term Accounts</span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center">
+            <CreditCard className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Active Till Cash */}
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Active Till Cash in Hand</p>
+            <h3 className="text-2xl font-bold text-emerald-700 mt-1 font-mono">
+              ₹{stats.tillCash.toLocaleString()}
+            </h3>
+            <span className="text-[11px] text-emerald-600 font-medium">Counter Drawer Balance</span>
           </div>
           <div className="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <Building2 className="w-6 h-6" />
+            <Banknote className="w-6 h-6" />
+          </div>
+        </div>
+
+        {/* Double-Entry Invariant Status */}
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">General Ledger Invariant</p>
+            <h3 className="text-lg font-bold text-slate-900 mt-1 flex items-center space-x-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>Debits == Credits</span>
+            </h3>
+            <span className="text-[11px] text-slate-500 font-mono">ACID Financial Posting</span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <ShieldCheck className="w-6 h-6" />
           </div>
         </div>
       </div>
@@ -189,10 +254,7 @@ export const Dashboard: React.FC = () => {
                         <MakerCheckerBadge status={item.status} />
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1">
-                        Module: <span className="font-semibold text-slate-700">{item.module}</span> • Action: <span className="font-mono text-slate-700">{item.actionType}</span> • Branch: {item.branch?.name}
-                      </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
-                        Created by <span className="font-medium text-slate-600">{item.maker?.fullName}</span> ({item.maker?.role?.name})
+                        Module: <span className="font-semibold text-slate-700">{item.module}</span> • Action: <span className="font-mono text-slate-700">{item.actionType}</span>
                       </p>
                     </div>
 
@@ -251,7 +313,7 @@ export const Dashboard: React.FC = () => {
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      Actor: <span className="font-medium text-slate-700">{log.username}</span> ({log.userRole}) • Date: <span className="font-mono">{log.businessDate}</span>
+                      Actor: <span className="font-medium text-slate-700">{log.username}</span> ({log.userRole})
                     </p>
                   </div>
                 </div>

@@ -12,8 +12,8 @@
 | Phase | Phase Name | Scope Summary | Status | Progress |
 | :--- | :--- | :--- | :---: | :---: |
 | **Phase 1** | **Foundation** | Auth/RBAC, Org/Branch, Customer/Member Master, KYC, Audit, Settings | 🟢 Completed | 100% |
-| **Phase 2** | **Accounts & CASA** | Products, Savings/Current, Deposits (FD/RD), Teller/Cash, Transfers | ⚪ Next Up | 0% |
-| **Phase 3** | **Loans & Advances** | Loan Origination, Appraisal, Sanction, Disbursement, Repayment Waterfall | ⚪ Not Started | 0% |
+| **Phase 2** | **Accounts & CASA** | Products, Savings/Current, Deposits (FD/RD), Teller/Cash, Transfers | 🟢 Completed | 100% |
+| **Phase 3** | **Loans & Advances** | Loan Origination, Appraisal, Sanction, Disbursement, Repayment Waterfall | ⚪ Next Up | 0% |
 | **Phase 4** | **Collections & Recovery**| Overdue monitoring, DPD calculation, Collector assignment, Notices, NPA | ⚪ Not Started | 0% |
 | **Phase 5** | **General Ledger & Accounting**| Chart of Accounts (COA), Multi-branch GL posting, Trial Balance, P&L, Balance Sheet | ⚪ Not Started | 0% |
 | **Phase 6** | **Reporting & MIS** | Regulatory returns, MIS dashboards, Member statements, Cash position | ⚪ Not Started | 0% |
@@ -22,66 +22,65 @@
 
 ---
 
-## Phase 1: Foundation (Completed Deliverables)
+## Phase 2: Accounts & CASA (Completed Deliverables)
 
 ### ✅ Completed & Tested Items:
 
-- [x] **Project Scaffolding & Git Setup**
-  - [x] Git repository initialized (`git init`, `.gitignore`)
-  - [x] Monorepo architecture with `backend` (Express TypeScript) and `frontend` (React Vite Tailwind)
-  - [x] Living `PROGRESS.md` and detailed `README.md`
+- [x] **Deposit Products Configuration (Section 6 & 29)**
+  - [x] Pre-configured product catalog with annual interest rates, min balance rules, compounding frequency, and GL liability accounts:
+    - `SB001`: Samruddhi Regular Savings Bank Account (3.5% p.a., quarterly compounding, min bal ₹500, `GL-2001`)
+    - `CA001`: Samruddhi Business Current Account (0%, min bal ₹5,000, `GL-2002`)
+    - `FD001`: Samruddhi Term Deposit (7.25% p.a., quarterly compounding, min ₹10,000, `GL-2003`)
+    - `RD001`: Lakhpati Recurring Deposit Scheme (7.0% p.a., monthly installments, min ₹1,000, `GL-2004`)
+  - [x] Product management API with role authorization
 
-- [x] **Identity & Role-Based Access Control (RBAC)**
-  - [x] 11 Roles implemented: `SUPER_ADMIN`, `HO_ADMIN`, `BRANCH_MANAGER`, `MAKER`, `CHECKER`, `TELLER`, `LOAN_OFFICER`, `COLLECTION_OFFICER`, `ACCOUNTANT`, `AUDITOR`, `CUSTOMER`
-  - [x] Granular RBAC middleware with role guards (`authorizeRoles`)
-  - [x] Password hashing with bcryptjs and JWT session authentication
-  - [x] Seed accounts pre-configured for Super Admin, HO Admin, Branch Manager, Maker, Checker, and Auditor
-  - [x] One-click demo role switcher in UI header and login screen
+- [x] **Account Opening & Term Deposit Engine (Section 6 & 21)**
+  - [x] Dynamic account numbering sequence: `SB-YYYY-XXXXX`, `CA-YYYY-XXXXX`, `FD-YYYY-XXXXX`, `RD-YYYY-XXXXX`
+  - [x] KYC gate: Restricts account opening to verified `ACTIVE` customers
+  - [x] Automated compounding maturity value projection for Term Deposits ($A = P(1 + r/n)^{nt}$)
+  - [x] Recurring Deposit monthly installment schedules & tenure parameters
+  - [x] Initial deposit posting with atomic double-entry balance updates
 
-- [x] **Organization & Branch Hierarchy**
-  - [x] Organization master (Samruddhi Co-operative Urban Bank Ltd.)
-  - [x] Multi-branch support (Head Office BR001, Shivaji Nagar BR002, Thane West BR003)
-  - [x] Cash counters & staff assignment
-  - [x] **Business Date Management Engine**: System business date rollover (EOD-controlled date, independent of wall clock, with OPEN / CUTOFF / CLOSED lifecycle)
+- [x] **Front-Desk Cash & Teller Operations (Section 8 & 21)**
+  - [x] Real-time Teller Till drawer session tracking (`openingBalance`, `totalCashReceived`, `totalCashPaid`, `currentBalance`)
+  - [x] Interactive currency denomination counter (₹500, ₹200, ₹100, ₹50, ₹20, ₹10, and coins) with live auto-summing
+  - [x] Cash Deposit flow with account balance credit and till cash increment
+  - [x] Cash Withdrawal flow with account available balance check and drawer cash validation
+  - [x] End-of-Day (EOD) physical cash balancing with shortage/excess calculation and supervisor sign-off
 
-- [x] **Customer & Member Master Lifecycle**
-  - [x] Customer Types: Individual, Joint Holder, Minor, Sole Proprietor, Partnership / Firm, Company / Society
-  - [x] Member Number auto-generation (`MEM-YYYY-XXXXX`) and Customer Number generation (`CUST-YYYY-XXXXX`)
-  - [x] Membership eligibility & status lifecycle (`ACTIVE`, `DORMANT`, `SUSPENDED`, `CLOSED`)
-  - [x] Demographics, residential addresses, and contact profiles
-  - [x] Nominee records with percentage allocation, relationship, and minor guardian details
-  - [x] Pat Sanstha Share Capital tracking (Certificate numbers, distinctive share ranges, total capital)
+- [x] **Internal Account-to-Account Fund Transfers (Section 9 & 21)**
+  - [x] Real-time beneficiary account validation
+  - [x] Available fund validation with freeze/dormancy safeguards
+  - [x] Atomic debit to source account + credit to destination account
+  - [x] Instant printable Payment Advice / Transfer Receipt with unique reference (`TXN-YYYYMMDD-XXXXX`)
 
-- [x] **KYC & Maker-Checker Workflow**
-  - [x] Document checklist: PAN, Aadhaar, Voter ID, Passport, Driving License, Photo, Signature
-  - [x] Risk classification grading: `LOW`, `MEDIUM`, `HIGH`
-  - [x] Immutable document versioning (`v1`, `v2`...) preventing accidental overwrites
-  - [x] Maker submission → Checker verification queue (`ApprovalQueue`)
-  - [x] Dual-control enforcement (prevents Maker from approving their own request)
-  - [x] Checker action lifecycle: `APPROVE`, `REJECT`, `SEND_BACK` with audit remarks
-  - [x] Automatic activation of customer and membership upon KYC approval
+- [x] **Core Accounting Posting Engine & Financial Invariant (Section 21 & 31)**
+  - [x] ACID financial posting engine guaranteeing the invariant:
+    $$\sum \text{Debits} = \sum \text{Credits}$$
+  - [x] Balanced journal entries across `GL-1001 Cash in Hand` and `GL-2001/2/3/4 Customer Deposit Liabilities`
+  - [x] Full integration into immutable audit trail
 
-- [x] **Audit Trail & Governance Engine**
-  - [x] Immutable audit logger capturing: User ID, Username, Role, Branch ID, Action (`CREATE`, `UPDATE`, `APPROVE`, `REJECT`, `LOGIN`), Entity Name, Entity ID, IP Address, User Agent, Business Date, Timestamp
-  - [x] Before/After state JSON snapshots on all mutations
-  - [x] Audit Log Explorer interface with search, action filtering, date filtering, and side-by-side JSON diff inspection
-
-- [x] **User Interface (React + Vite + Tailwind CSS)**
-  - [x] Enterprise banking layout with active branch & business date indicator
-  - [x] Executive Dashboard with Phase 1 KPIs and real-time approval queue
-  - [x] Customer & Member Master directory with multi-filter search and 360° Profile view
-  - [x] Interactive Onboarding Wizard
-  - [x] Maker-Checker Queue with document verification drawer and approve/reject/send-back actions
-  - [x] Branch Hierarchy & Business Date rollover controller
-  - [x] System Settings & RBAC matrix viewer
+- [x] **User Interface (React + Tailwind CSS)**
+  - [x] Accounts & Deposits Hub with CASA vs Term Deposit categorization, search, and 360° Account Detail modal
+  - [x] Teller Cash Counter screen with interactive denomination calculator and EOD balancing
+  - [x] Fund Transfer screen with instant beneficiary lookup and printable advice
+  - [x] Updated Executive Dashboard displaying Total Deposit Liability, Till Cash In Hand, and GL invariant status
 
 ---
 
-## Phase 2: Accounts & CASA (Next Sprint Scope)
+## Phase 1: Foundation (Recap of Completed Scope)
+- [x] Auth & RBAC (11 institutional roles, bcrypt, JWT)
+- [x] Multi-Branch hierarchy with Controlled Business Date Engine (`OPEN` / `CUTOFF` / `CLOSED`)
+- [x] Customer & Member Master (Share capital, certificate tracking, nominee management)
+- [x] KYC & Maker-Checker Dual-Control Workflow
+- [x] Immutable Audit Trail with side-by-side JSON state diffs
 
-- [ ] **Deposit Products Configuration**: Savings Bank (SB), Current Account (CA), Fixed Deposits (FD), Recurring Deposits (RD).
-- [ ] **Interest Rule & Rate Tables**: Effective-dated interest rates, penalty rules, minimum balance charges.
-- [ ] **Account Opening Workflow**: Product selection, account numbering (`ACC-YYYY-XXXXX`), nominee assignment, initial deposit.
-- [ ] **Cash & Teller Operations**: Teller counter assignment, opening cash float, cash receipt/payment, denomination capture, vault transfer, teller balancing.
-- [ ] **Fund Transfers**: Internal account-to-account transfer with dual debit/credit validation.
-- [ ] **Transaction Posting Invariant**: Core accounting invariant verification (`Total Debits == Total Credits`).
+---
+
+## Phase 3: Loans & Advances (Next Sprint Scope)
+
+- [ ] **Loan Products Catalog**: Personal Loans, Vehicle Loans, Gold Loans, Business/Mortgage Loans, Agricultural Term Loans.
+- [ ] **Loan Origination System (LOS)**: Application capture, co-applicants, guarantors, collateral appraisal, credit grading.
+- [ ] **Sanction & Disbursement Engine**: Sanction letter generation, deduction of processing fees/charges, disbursement directly into customer savings account with balanced GL journal.
+- [ ] **Repayment Schedule Generation**: Reducing balance EMI schedules and flat interest amortization tables.
+- [ ] **Waterfall Repayment Allocation**: Charges/fees → Penalty/late fees → Overdue Interest → Current Interest → Principal.
