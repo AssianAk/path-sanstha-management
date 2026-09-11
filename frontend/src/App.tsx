@@ -16,6 +16,7 @@ import { FundTransfer } from './pages/Transfers/FundTransfer';
 import { LoansHub } from './pages/Loans/LoansHub';
 import { CollectionsHub } from './pages/Collections/CollectionsHub';
 import { GLHub } from './pages/GeneralLedger/GLHub';
+import { ReportsHub } from './pages/Reports/ReportsHub';
 import api from './api/client';
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -166,6 +167,16 @@ export const App: React.FC = () => {
             element={
               <AppLayout>
                 <GLHub />
+              </AppLayout>
+            }
+          />
+
+          {/* Phase 6 Routes */}
+          <Route
+            path="/reports"
+            element={
+              <AppLayout>
+                <ReportsHub />
               </AppLayout>
             }
           />

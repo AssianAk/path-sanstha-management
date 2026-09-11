@@ -13,7 +13,8 @@ import {
   Award,
   ShieldAlert,
   BookOpen,
-  GitBranch
+  GitBranch,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -49,6 +50,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
 
   const phase5Items = [
     { to: '/gl', label: 'General Ledger & COA', icon: BookOpen },
+  ];
+
+  const phase6Items = [
+    { to: '/reports', label: 'Reports & Regulatory MIS', icon: BarChart3 },
   ];
 
   return (
@@ -205,15 +210,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
           );
         })}
 
+        {/* Phase 6 Group */}
+        <div className="pt-3 px-3 py-1 text-[10px] font-semibold text-indigo-400 uppercase tracking-wider flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+          <span>Phase 6 - Reporting & MIS</span>
+        </div>
+        {phase6Items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  isActive
+                    ? 'bg-indigo-600 text-white font-semibold shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`
+              }
+            >
+              <div className="flex items-center space-x-2.5">
+                <Icon className="w-3.5 h-3.5" />
+                <span>{item.label}</span>
+              </div>
+            </NavLink>
+          );
+        })}
+
         {/* Roadmap Preview */}
         <div className="pt-4 px-3 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
           Roadmap Modules
         </div>
         <div className="px-3 space-y-1 text-xs text-slate-500">
-          <div className="flex items-center space-x-2 py-0.5">
-            <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-            <span>Phase 6: Reporting & Regulatory MIS</span>
-          </div>
           <div className="flex items-center space-x-2 py-0.5">
             <span className="w-2 h-2 rounded-full bg-slate-700"></span>
             <span>Phase 7: Member Digital Channels</span>
