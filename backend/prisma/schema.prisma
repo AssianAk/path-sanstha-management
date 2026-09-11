@@ -1,0 +1,296 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -------------------------------------------------------------
+// 1. IDENTITY & RBAC
+// -------------------------------------------------------------
+
+model Role {
+  id          String           @id @default(uuid())
+  code        String           @unique // SUPER_ADMIN, HO_ADMIN, BRANCH_MANAGER, MAKER, CHECKER, TELLER, etc.
+  name        String
+  description String?
+  isSystem    Boolean          @default(true)
+  users       User[]
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now())
+}
+
+model Permission {
+  id          String           @id @default(uuid())
+  code        String           @unique // e.g. customer:create, kyc:approve
+  module      String           // AUTH, CUSTOMER, KYC, BRANCH, AUDIT, SETTINGS
+  description String
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId       String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId String
+
+  @@unique([roleId, permissionId])
+}
+
+model User {
+  id           String    @id @default(uuid())
+  username     String    @unique
+  email        String    @unique
+  passwordHash String
+  fullName     String
+  phone        String?
+  roleId       String
+  role         Role      @relation(fields: [roleId], references: [id])
+  branchId     String?
+  branch       Branch?   @relation(fields: [branchId], references: [id])
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  createdCustomers Customer[]       @relation("CustomerCreatedBy")
+  approvedCustomers Customer[]      @relation("CustomerApprovedBy")
+  makerRequests    ApprovalQueue[]  @relation("MakerRequests")
+  checkerRequests  ApprovalQueue[]  @relation("CheckerRequests")
+  assignedCounters BranchCounter[]
+}
+
+// -------------------------------------------------------------
+// 2. ORGANIZATION & BRANCH STRUCTURE
+// -------------------------------------------------------------
+
+model Organization {
+  id                 String   @id @default(uuid())
+  name               String
+  registrationNumber String   @unique
+  headOfficeAddress  String
+  contactEmail       String
+  contactPhone       String
+  panNumber          String?
+  gstNumber          String?
+  establishedDate    DateTime?
+  branches           Branch[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Branch {
+  id             String          @id @default(uuid())
+  organizationId String
+  organization   Organization    @relation(fields: [organizationId], references: [id])
+  code           String          @unique // e.g. BR001, BR002
+  name           String
+  ifscCode       String?
+  micrCode       String?
+  address        String
+  city           String
+  state          String
+  pincode        String
+  phone          String
+  email          String
+  isActive       Boolean         @default(true)
+  users          User[]
+  counters       BranchCounter[]
+  businessDates  BusinessDate[]
+  customers      Customer[]
+  approvalQueues ApprovalQueue[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model BranchCounter {
+  id            String   @id @default(uuid())
+  branchId      String
+  branch        Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  counterNumber String
+  counterName   String
+  assignedUserId String?
+  assignedUser  User?    @relation(fields: [assignedUserId], references: [id])
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+}
+
+model BusinessDate {
+  id              String    @id @default(uuid())
+  branchId        String
+  branch          Branch    @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  currentDate     String    // YYYY-MM-DD
+  status          String    @default("OPEN") // OPEN, CUTOFF, CLOSED
+  openedByUserId  String?
+  closedByUserId  String?
+  openedAt        DateTime  @default(now())
+  closedAt        DateTime?
+
+  @@unique([branchId, currentDate])
+}
+
+// -------------------------------------------------------------
+// 3. CUSTOMER & MEMBER MASTER
+// -------------------------------------------------------------
+
+model Customer {
+  id                 String            @id @default(uuid())
+  customerNumber     String            @unique // CUST-YYYY-XXXXX
+  customerType       String            @default("INDIVIDUAL") // INDIVIDUAL, JOINT, MINOR, SOLE_PROPRIETOR, PARTNERSHIP, COMPANY
+  isMember           Boolean           @default(false)
+  memberNumber       String?           @unique // MEM-YYYY-XXXXX
+  membershipDate     DateTime?
+  memberStatus       String?           // ACTIVE, DORMANT, SUSPENDED, CLOSED
+  
+  title              String            @default("Mr.")
+  firstName          String
+  middleName         String?
+  lastName           String
+  dob                String            // YYYY-MM-DD
+  gender             String            // MALE, FEMALE, OTHER
+  maritalStatus      String?           // SINGLE, MARRIED, WIDOWED, DIVORCED
+  fatherOrSpouseName String?
+  occupation         String?
+  annualIncome       Float?            @default(0)
+  pan                String?
+  aadhaarLast4       String?
+  phone              String
+  email              String?
+
+  branchId           String
+  branch             Branch            @relation(fields: [branchId], references: [id])
+  riskCategory       String            @default("LOW") // LOW, MEDIUM, HIGH
+  status             String            @default("PENDING_KYC") // PROSPECT, PENDING_KYC, ACTIVE, INACTIVE, CLOSED
+
+  createdByUserId    String?
+  createdBy          User?             @relation("CustomerCreatedBy", fields: [createdByUserId], references: [id])
+  approvedByUserId   String?
+  approvedBy         User?             @relation("CustomerApprovedBy", fields: [approvedByUserId], references: [id])
+
+  addresses          CustomerAddress[]
+  nominees           CustomerNominee[]
+  kycDocuments       KycDocument[]
+  memberShares       MemberShare[]
+  
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+}
+
+model CustomerAddress {
+  id          String   @id @default(uuid())
+  customerId  String
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  addressType String   // CURRENT, PERMANENT, OFFICE
+  line1       String
+  line2       String?
+  landmark    String?
+  city        String
+  state       String
+  pincode     String
+  isPrimary   Boolean  @default(true)
+}
+
+model CustomerNominee {
+  id                   String   @id @default(uuid())
+  customerId           String
+  customer             Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  name                 String
+  relationship         String
+  dob                  String?
+  age                  Int?
+  phone                String?
+  address              String?
+  allocationPercentage Float    @default(100.0)
+  isMinor              Boolean  @default(false)
+  guardianName         String?
+  guardianRelation     String?
+  guardianPhone        String?
+}
+
+model MemberShare {
+  id                     String   @id @default(uuid())
+  customerId             String
+  customer               Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  shareCertificateNumber String   @unique
+  distinctFrom           Int
+  distinctTo             Int
+  totalShares            Int
+  faceValue              Float    @default(10.0)
+  totalAmount            Float
+  issueDate              DateTime @default(now())
+  status                 String   @default("ACTIVE") // ACTIVE, TRANSFERRED, SURRENDERED
+}
+
+// -------------------------------------------------------------
+// 4. KYC & MAKER-CHECKER WORKFLOW
+// -------------------------------------------------------------
+
+model KycDocument {
+  id                  String    @id @default(uuid())
+  customerId          String
+  customer            Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  documentType        String    // AADHAAR, PAN, VOTER_ID, PASSPORT, DRIVING_LICENSE, PHOTO, SIGNATURE
+  documentNumber      String
+  documentUrl         String?   // Base64 or local storage path
+  mimeType            String?   @default("application/pdf")
+  version             Int       @default(1)
+  status              String    @default("PENDING") // PENDING, VERIFIED, REJECTED, SUPERSEDED
+  verifiedByUserId    String?
+  verifiedAt          DateTime?
+  verificationRemarks String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model ApprovalQueue {
+  id            String    @id @default(uuid())
+  module        String    // CUSTOMER, KYC, MEMBER, ACCOUNT, TRANSACTION
+  entityId      String
+  actionType    String    // CREATE, UPDATE, VERIFY, STATUS_CHANGE
+  payloadJson   String    // Serialized snapshot or request details
+  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED, SENT_BACK
+  makerUserId   String
+  maker         User      @relation("MakerRequests", fields: [makerUserId], references: [id])
+  makerRemarks  String?
+  checkerUserId String?
+  checker       User?     @relation("CheckerRequests", fields: [checkerUserId], references: [id])
+  checkerRemarks String?
+  branchId      String
+  branch        Branch    @relation(fields: [branchId], references: [id])
+  createdAt     DateTime  @default(now())
+  resolvedAt    DateTime?
+}
+
+// -------------------------------------------------------------
+// 5. AUDIT TRAIL & SYSTEM CONFIGURATION
+// -------------------------------------------------------------
+
+model AuditLog {
+  id              String   @id @default(uuid())
+  userId          String?
+  username        String
+  userRole        String
+  branchId        String?
+  action          String   // CREATE, UPDATE, DELETE, APPROVE, REJECT, SEND_BACK, LOGIN, LOGOUT
+  entityName      String   // CUSTOMER, KYC, BRANCH, USER, SETTING
+  entityId        String?
+  beforeStateJson String?
+  afterStateJson  String?
+  ipAddress       String?
+  userAgent       String?
+  businessDate    String?  // YYYY-MM-DD
+  timestamp       DateTime @default(now())
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String
+  category    String   // GENERAL, SECURITY, MAKER_CHECKER, EOD
+  isEditable  Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}

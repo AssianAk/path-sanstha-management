@@ -1,0 +1,21 @@
+{
+  "name": "coop-bank-patsanstha",
+  "version": "1.0.0",
+  "description": "Core Banking System for Co-operative Banks and Pat Sansthas",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build",
+    "seed": "cd backend && npm run seed"
+  },
+  "keywords": [
+    "banking",
+    "cooperative-bank",
+    "pat-sanstha",
+    "cbs",
+    "fintech"
+  ],
+  "author": "Antigravity",
+  "license": "ISC"
+}
