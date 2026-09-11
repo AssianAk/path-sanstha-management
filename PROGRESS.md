@@ -14,8 +14,8 @@
 | **Phase 1** | **Foundation** | Auth/RBAC, Org/Branch, Customer/Member Master, KYC, Audit, Settings | 🟢 Completed | 100% |
 | **Phase 2** | **Accounts & CASA** | Products, Savings/Current, Deposits (FD/RD), Teller/Cash, Transfers | 🟢 Completed | 100% |
 | **Phase 3** | **Loans & Advances** | Loan Origination (LOS), Appraisal, Sanction, Disbursement, Waterfall Repayment | 🟢 Completed | 100% |
-| **Phase 4** | **Collections & Recovery**| Overdue monitoring, DPD calculation, Collector assignment, Demand Notices, NPA | ⚪ Next Up | 0% |
-| **Phase 5** | **General Ledger & Accounting**| Chart of Accounts (COA), Multi-branch GL posting, Trial Balance, P&L, Balance Sheet | ⚪ Not Started | 0% |
+| **Phase 4** | **Collections & Recovery**| Overdue monitoring, DPD calculation, Collector assignment, Demand Notices, NPA | 🟢 Completed | 100% |
+| **Phase 5** | **General Ledger & Accounting**| Chart of Accounts (COA), Multi-branch GL posting, Trial Balance, P&L, Balance Sheet | ⚪ Next Up | 0% |
 | **Phase 6** | **Reporting & MIS** | Regulatory returns, MIS dashboards, Member statements, Cash position | ⚪ Not Started | 0% |
 | **Phase 7** | **Digital Channels & Integrations** | Member self-service portal, SMS/Email/WhatsApp alerts, Payment gateway rails | ⚪ Not Started | 0% |
 | **Phase 8** | **Hardening & Rollout** | Security audit, Performance benchmarks, Disaster Recovery, Production cutover | ⚪ Not Started | 0% |
@@ -128,12 +128,59 @@
 
 ---
 
-## Phase 4: Collections & Recovery / NPA (Next Sprint Scope)
+## Phase 4: Collections & Recovery / NPA (Completed Deliverables)
 
-- [ ] **Days Past Due (DPD) Tracking**: Daily automated overdue calculation based on active branch business date.
-- [ ] **Asset Classification & NPA Aging Engine (Section 11 & 24)**:
-  - Standard Assets (SMA-0: 1-30 DPD, SMA-1: 31-60 DPD, SMA-2: 61-90 DPD)
-  - Non-Performing Assets (Sub-Standard: >90 DPD to 12 months, Doubtful 1/2/3, Loss Assets)
-- [ ] **Provisioning Engine (Section 11)**: Automated RBI/Co-operative provisioning calculation based on asset class.
-- [ ] **Recovery & Field Collection Hub**: Collector portfolio assignment, daily collection sheets, field visit logs.
-- [ ] **Legal & Recovery Notices (Section 12)**: Automated demand notice generation, Section 101 / 138 / SARFAESI notice tracking.
+### ✅ Completed & Tested Items:
+
+- [x] **Automated Days-Past-Due (DPD) & Overdue Engine (Section 11 & 24)**
+  - [x] Evaluates unpaid loan installments against active branch business date:
+    $$\text{daysOverdue} = \text{DateDifference}(\text{BusinessDate}, \text{DueDate})$$
+  - [x] Automatic loan-level DPD calculation from the oldest overdue installment
+  - [x] Itemized overdue breakdown: Overdue Principal, Overdue Interest, and Penal Charges
+
+- [x] **IRAC Regulatory Asset Classification & NPA Aging Engine (Section 11 & 24)**
+  - [x] Automatic classification into RBI Master Direction / Co-operative IRAC bands:
+    - **Standard Assets**: Regular ($0\text{ DPD}$), SMA-0 ($1-30\text{ DPD}$), SMA-1 ($31-60\text{ DPD}$), SMA-2 ($61-90\text{ DPD}$)
+    - **Non-Performing Assets (NPA)**: Sub-Standard ($91-455\text{ DPD}$), Doubtful 1/2/3 ($>455\text{ DPD}$), Loss Assets
+  - [x] Auto-stamping of `npaDate` on transition to Non-Performing status
+  - [x] One-click batch execution trigger with complete audit trail recording
+
+- [x] **Regulatory Provisioning Engine (Section 11)**
+  - [x] Statutory reserve provision calculation based on asset classification:
+    - Standard / SMA: $0.40\%$ general provision
+    - Sub-Standard: $10.0\%$ provision
+    - Doubtful: $20.0\% - 100.0\%$ provision
+    - Loss: $100.0\%$ provision
+  - [x] Summary reporting of aggregate required credit risk provision reserve
+
+- [x] **Field Recovery & Collection Officer Roster (Section 11)**
+  - [x] Institutional `COLLECTION_OFFICER` role support
+  - [x] Dynamic assignment and reallocation of delinquent accounts to field recovery officers
+  - [x] Field interaction logging: Visit type (Field Visit, Call, Meeting, Guarantor), customer stance, Promise-to-Pay (PTP) date & amount, and follow-up reminders
+  - [x] Interactive borrower interaction history timeline
+
+- [x] **Legal & Demand Notices Engine (Section 12)**
+  - [x] Automated formulation of formal legal demand notices with bilingual Marathi / English templates:
+    - `REMINDER_1`: Overdue EMI Reminder Notice ($15-30\text{ DPD}$)
+    - `DEMAND_2`: Formal Demand Notice ($31-60\text{ DPD}$) warning of CIBIL reporting and NPA classification
+    - `FINAL_RECALL_3`: Final Loan Acceleration Notice ($61-90\text{ DPD}$)
+    - `SEC_101_COOP`: Statutory Notice under Section 101 of Maharashtra Co-operative Societies Act, 1960 for Recovery Certificate
+    - `SEC_138_NI`: Statutory Cheque Dishonor Legal Notice
+  - [x] Notice Dispatch Register with tracking numbers (RPAD / Speed Post) and delivery status updates (`GENERATED`, `DISPATCHED`, `DELIVERED`)
+  - [x] Printable bank letterhead notice layout with itemized debt table and authorized officer sign-off
+
+- [x] **Frontend User Interface (React + TypeScript + Tailwind CSS)**
+  - [x] **Collections & NPA Hub (`/collections`)**: High-level KPIs (Gross NPA %, Gross Overdue Portfolio, Provision Reserve, Notices Issued), DPD bucket strip, and tabs for Worklist, Notice Register, and Provisioning Summary
+  - [x] **Recovery Action Modal**: Field interaction logging with PTP commitments and past interaction timeline
+  - [x] **Generate Notice Modal**: Notice template selection, live legal text formulation, itemized dues summary, and print functionality
+  - [x] **Sidebar Navigation**: Added `/collections` menu item with active indicator
+
+---
+
+## Phase 5: General Ledger & Accounting (Next Sprint Scope)
+
+- [ ] **Chart of Accounts (COA) Architecture (Section 21)**: Multi-level hierarchical GL structure (Assets, Liabilities, Equity, Income, Expense) compliant with RBI & Co-operative Banking formats.
+- [ ] **Multi-Branch Centralized General Ledger Posting**: Automated and manual journal entries (Contra, Credit, Debit) with branch-level sub-ledgers.
+- [ ] **Financial Invariant Validation**: Automated reconciliation verifying $\sum \text{Debits} == \sum \text{Credits}$ across all active ledgers.
+- [ ] **Trial Balance Engine**: Daily gross and net Trial Balance generation by branch and consolidated institution-wide.
+- [ ] **Profit & Loss (Income Statement) & Balance Sheet Generation**: Real-time statutory financial statements.

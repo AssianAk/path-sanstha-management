@@ -65,6 +65,9 @@ model User {
   makerTransactions   Transaction[]     @relation("TransactionMaker")
   checkerTransactions Transaction[]   @relation("TransactionChecker")
   sanctionedLoans     LoanApplication[] @relation("LoanSanctionedBy")
+  assignedLoans       LoanAccount[]     @relation("AssignedCollector")
+  recoveryActions     LoanRecoveryAction[]
+  generatedNotices    LoanNotice[]
 }
 
 // -------------------------------------------------------------
@@ -525,6 +528,13 @@ model LoanAccount {
   firstEmiDate          String              // YYYY-MM-DD
   maturityDate          String              // YYYY-MM-DD
   status                String              @default("ACTIVE") // ACTIVE, OVERDUE, NPA, CLOSED
+  dpd                   Int                 @default(0) // Days Past Due
+  assetClassification   String              @default("STANDARD") // STANDARD, SMA_0, SMA_1, SMA_2, SUB_STANDARD, DOUBTFUL_1, DOUBTFUL_2, DOUBTFUL_3, LOSS
+  npaDate               String?             // YYYY-MM-DD
+  provisionAmount       Float               @default(0.0)
+  provisionPercent      Float               @default(0.4)
+  assignedCollectorId   String?
+  assignedCollector     User?               @relation("AssignedCollector", fields: [assignedCollectorId], references: [id])
   savingsAccountId      String?
   savingsAccount        Account?            @relation("LoanSavingsCredit", fields: [savingsAccountId], references: [id])
   totalInterestPaid     Float               @default(0.0)
@@ -532,6 +542,8 @@ model LoanAccount {
   totalPenaltyPaid      Float               @default(0.0)
   installments          LoanInstallment[]
   allocations           LoanPaymentAllocation[]
+  recoveryActions       LoanRecoveryAction[]
+  notices               LoanNotice[]
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt
 }
@@ -570,7 +582,51 @@ model LoanPaymentAllocation {
 }
 
 // -------------------------------------------------------------
-// 7. AUDIT TRAIL & SYSTEM CONFIGURATION
+// 7. PHASE 4: COLLECTIONS, RECOVERY & NPA (SECTIONS 11, 12, 24)
+// -------------------------------------------------------------
+
+model LoanRecoveryAction {
+  id                  String      @id @default(uuid())
+  loanAccountId       String
+  loanAccount         LoanAccount @relation(fields: [loanAccountId], references: [id], onDelete: Cascade)
+  collectorId         String
+  collector           User        @relation(fields: [collectorId], references: [id])
+  actionType          String      // PHONE_CALL, FIELD_VISIT, BRANCH_MEETING, GUARANTOR_CONTACT, LEGAL_MEETING
+  actionDate          String      // YYYY-MM-DD
+  customerResponse    String?     // WILL_PAY, DISPUTED, REFUSED, NOT_CONTACTABLE, FINANCIAL_DISTRESS
+  promisedPaymentDate String?     // YYYY-MM-DD
+  promisedAmount      Float?
+  notes               String
+  followUpDate        String?     // YYYY-MM-DD
+  businessDate        String      // YYYY-MM-DD
+  createdAt           DateTime    @default(now())
+}
+
+model LoanNotice {
+  id                  String      @id @default(uuid())
+  noticeNumber        String      @unique // NOT-YYYY-XXXXX
+  loanAccountId       String
+  loanAccount         LoanAccount @relation(fields: [loanAccountId], references: [id], onDelete: Cascade)
+  noticeType          String      // REMINDER_1, DEMAND_2, FINAL_RECALL_3, SEC_101_COOP, SEC_138_NI
+  generatedDate       String      // YYYY-MM-DD
+  dueAmount           Float
+  principalOverdue    Float
+  interestOverdue     Float
+  penalCharges        Float
+  dispatchMedium      String      @default("REGISTERED_POST") // REGISTERED_POST, SPEED_POST, HAND_DELIVERY, SMS_EMAIL
+  dispatchRef         String?
+  dispatchedDate      String?
+  deliveryStatus      String      @default("GENERATED") // GENERATED, DISPATCHED, DELIVERED, RETURNED, REPLIED
+  deliveredDate       String?
+  content             String?
+  generatedByUserId   String
+  generatedByUser     User        @relation(fields: [generatedByUserId], references: [id])
+  businessDate        String      // YYYY-MM-DD
+  createdAt           DateTime    @default(now())
+}
+
+// -------------------------------------------------------------
+// 8. AUDIT TRAIL & SYSTEM CONFIGURATION
 // -------------------------------------------------------------
 
 model AuditLog {

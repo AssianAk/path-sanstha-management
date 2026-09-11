@@ -11,6 +11,7 @@ import {
   Banknote,
   ArrowLeftRight,
   Award,
+  ShieldAlert,
   GitBranch
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -39,6 +40,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
 
   const phase3Items = [
     { to: '/loans', label: 'Loans & Advances (LOS)', icon: Award },
+  ];
+
+  const phase4Items = [
+    { to: '/collections', label: 'Collections & NPA Hub', icon: ShieldAlert },
   ];
 
   return (
@@ -141,6 +146,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
           );
         })}
 
+        {/* Phase 4 Group */}
+        <div className="pt-3 px-3 py-1 text-[10px] font-semibold text-rose-400 uppercase tracking-wider flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse"></span>
+          <span>Phase 4 - Collections & NPA</span>
+        </div>
+        {phase4Items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  isActive
+                    ? 'bg-rose-600 text-white font-semibold shadow-sm'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`
+              }
+            >
+              <div className="flex items-center space-x-2.5">
+                <Icon className="w-3.5 h-3.5" />
+                <span>{item.label}</span>
+              </div>
+            </NavLink>
+          );
+        })}
+
         {/* Roadmap Preview */}
         <div className="pt-4 px-3 py-1 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
           Roadmap Modules
@@ -148,11 +180,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 0 }) =
         <div className="px-3 space-y-1 text-xs text-slate-500">
           <div className="flex items-center space-x-2 py-0.5">
             <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-            <span>Phase 4: Collections & NPA</span>
+            <span>Phase 5: General Ledger & Accounting</span>
           </div>
           <div className="flex items-center space-x-2 py-0.5">
             <span className="w-2 h-2 rounded-full bg-slate-700"></span>
-            <span>Phase 5: General Ledger</span>
+            <span>Phase 6: Reporting & Regulatory MIS</span>
           </div>
         </div>
       </nav>

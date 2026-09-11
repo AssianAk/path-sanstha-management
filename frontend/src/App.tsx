@@ -14,6 +14,7 @@ import { AccountList } from './pages/Accounts/AccountList';
 import { TellerCounter } from './pages/Teller/TellerCounter';
 import { FundTransfer } from './pages/Transfers/FundTransfer';
 import { LoansHub } from './pages/Loans/LoansHub';
+import { CollectionsHub } from './pages/Collections/CollectionsHub';
 import api from './api/client';
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -144,6 +145,16 @@ export const App: React.FC = () => {
             element={
               <AppLayout>
                 <LoansHub />
+              </AppLayout>
+            }
+          />
+
+          {/* Phase 4 Routes */}
+          <Route
+            path="/collections"
+            element={
+              <AppLayout>
+                <CollectionsHub />
               </AppLayout>
             }
           />

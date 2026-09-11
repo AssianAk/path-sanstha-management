@@ -132,6 +132,7 @@ async function main() {
     { username: 'bm_pune', email: 'bm.pune@samruddhibank.in', password: 'Manager@123', fullName: 'Anand Shinde', roleCode: 'BRANCH_MANAGER', branchId: b1.id },
     { username: 'maker_pune', email: 'maker.pune@samruddhibank.in', password: 'Maker@123', fullName: 'Snehal Joshi (Maker)', roleCode: 'MAKER', branchId: b1.id },
     { username: 'checker_pune', email: 'checker.pune@samruddhibank.in', password: 'Checker@123', fullName: 'Milind Kulkarni (Checker)', roleCode: 'CHECKER', branchId: b1.id },
+    { username: 'collector_pune', email: 'collector.pune@samruddhibank.in', password: 'Collector@123', fullName: 'Rajesh Gaikwad (Recovery)', roleCode: 'COLLECTION_OFFICER', branchId: b1.id },
     { username: 'auditor', email: 'auditor@samruddhibank.in', password: 'Auditor@123', fullName: 'Pradeep Walvekar (Auditor)', roleCode: 'AUDITOR', branchId: b1.id }
   ];
 
@@ -539,7 +540,194 @@ async function main() {
 
   console.log(`✓ Seeded Disbursed Loan: ${loanAcc1.loanAccountNumber} with 24 EMI Schedule (EMI: ₹${emiVal})`);
   console.log(`✓ Seeded Balanced Disbursement Txn: ${disbTxn.transactionReference} (Total Debits: ₹300k == Total Credits: ₹300k)`);
-  console.log('🎉 Seed complete successfully for Phase 1, 2 & 3!');
+
+  // 14. Phase 4: Delinquent Loan (NPA / SMA demonstration)
+  const collectorId = userMap.get('collector_pune')!;
+  const plProduct = await prisma.loanProduct.findUnique({ where: { code: 'PL001' } });
+
+  if (plProduct) {
+    const overdueLoanApp = await prisma.loanApplication.upsert({
+      where: { applicationNumber: 'LA-2026-00099' },
+      update: {},
+      create: {
+        applicationNumber: 'LA-2026-00099',
+        customerId: member2.id,
+        loanProductId: plProduct.id,
+        branchId: b1.id,
+        requestedAmount: 150000.0,
+        requestedTenureMonths: 12,
+        purpose: 'Retail Boutique Expansion',
+        status: 'DISBURSED',
+        riskGrade: 'MEDIUM',
+        appraisalNotes: 'Appraised in April 2026. Approved by branch committee.',
+        sanctionedAmount: 150000.0,
+        interestRate: 12.5,
+        sanctionedTenureMonths: 12,
+        sanctionedByUserId: bmId,
+        sanctionedAt: new Date('2026-04-10')
+      }
+    });
+
+    const emiOverdue = 13362.43; // 150k @ 12.5% for 12 months
+    const overdueLoanAcc = await prisma.loanAccount.upsert({
+      where: { loanAccountNumber: 'LN-2026-00099' },
+      update: {
+        dpd: 92,
+        assetClassification: 'SUB_STANDARD',
+        npaDate: '2026-09-09',
+        provisionPercent: 10.0,
+        provisionAmount: 11450.0,
+        assignedCollectorId: collectorId
+      },
+      create: {
+        loanAccountNumber: 'LN-2026-00099',
+        loanApplicationId: overdueLoanApp.id,
+        customerId: member2.id,
+        loanProductId: plProduct.id,
+        branchId: b1.id,
+        sanctionedAmount: 150000.0,
+        disbursedAmount: 150000.0,
+        principalOutstanding: 114500.0,
+        interestRate: 12.5,
+        interestType: 'REDUCING_BALANCE',
+        tenureMonths: 12,
+        emiAmount: emiOverdue,
+        disbursementDate: '2026-04-11',
+        firstEmiDate: '2026-05-11',
+        maturityDate: '2027-04-11',
+        status: 'OVERDUE',
+        dpd: 92,
+        assetClassification: 'SUB_STANDARD',
+        npaDate: '2026-09-09',
+        provisionPercent: 10.0,
+        provisionAmount: 11450.0,
+        assignedCollectorId: collectorId,
+        totalInterestPaid: 3200.0,
+        totalPrincipalPaid: 35500.0,
+        totalPenaltyPaid: 0.0
+      }
+    });
+
+    // Check if installments exist
+    const instCount = await prisma.loanInstallment.count({ where: { loanAccountId: overdueLoanAcc.id } });
+    if (instCount === 0) {
+      // Month 1: 2026-05-11 (PAID)
+      await prisma.loanInstallment.create({
+        data: {
+          loanAccountId: overdueLoanAcc.id,
+          installmentNumber: 1,
+          dueDate: '2026-05-11',
+          principalDue: 11800.0,
+          interestDue: 1562.43,
+          totalEmi: emiOverdue,
+          principalPaid: 11800.0,
+          interestPaid: 1562.43,
+          status: 'PAID',
+          paidDate: '2026-05-10'
+        }
+      });
+      // Month 2: 2026-06-11 (OVERDUE - 92 DPD)
+      await prisma.loanInstallment.create({
+        data: {
+          loanAccountId: overdueLoanAcc.id,
+          installmentNumber: 2,
+          dueDate: '2026-06-11',
+          principalDue: 11923.0,
+          interestDue: 1439.43,
+          totalEmi: emiOverdue,
+          penaltyDue: 500.0,
+          status: 'OVERDUE'
+        }
+      });
+      // Month 3: 2026-07-11 (OVERDUE - 62 DPD)
+      await prisma.loanInstallment.create({
+        data: {
+          loanAccountId: overdueLoanAcc.id,
+          installmentNumber: 3,
+          dueDate: '2026-07-11',
+          principalDue: 12047.0,
+          interestDue: 1315.43,
+          totalEmi: emiOverdue,
+          penaltyDue: 500.0,
+          status: 'OVERDUE'
+        }
+      });
+      // Month 4: 2026-08-11 (OVERDUE - 31 DPD)
+      await prisma.loanInstallment.create({
+        data: {
+          loanAccountId: overdueLoanAcc.id,
+          installmentNumber: 4,
+          dueDate: '2026-08-11',
+          principalDue: 12172.0,
+          interestDue: 1190.43,
+          totalEmi: emiOverdue,
+          penaltyDue: 500.0,
+          status: 'OVERDUE'
+        }
+      });
+      // Month 5: 2026-09-11 (OVERDUE - 0 DPD / Today)
+      await prisma.loanInstallment.create({
+        data: {
+          loanAccountId: overdueLoanAcc.id,
+          installmentNumber: 5,
+          dueDate: '2026-09-11',
+          principalDue: 12299.0,
+          interestDue: 1063.43,
+          totalEmi: emiOverdue,
+          penaltyDue: 0.0,
+          status: 'OVERDUE'
+        }
+      });
+    }
+
+    // Seed Sample Recovery Action
+    const recCount = await prisma.loanRecoveryAction.count({ where: { loanAccountId: overdueLoanAcc.id } });
+    if (recCount === 0) {
+      await prisma.loanRecoveryAction.create({
+        data: {
+          loanAccountId: overdueLoanAcc.id,
+          collectorId,
+          actionType: 'FIELD_VISIT',
+          actionDate: '2026-09-08',
+          customerResponse: 'WILL_PAY',
+          promisedPaymentDate: '2026-09-15',
+          promisedAmount: 25000.0,
+          notes: 'Visited borrower boutique at Shivaji Nagar. Borrower requested time until 15th Sep to clear 2 EMIs.',
+          followUpDate: '2026-09-16',
+          businessDate: todayStr
+        }
+      });
+    }
+
+    // Seed Sample Notice
+    await prisma.loanNotice.upsert({
+      where: { noticeNumber: 'NOT-2026-00001' },
+      update: {},
+      create: {
+        noticeNumber: 'NOT-2026-00001',
+        loanAccountId: overdueLoanAcc.id,
+        noticeType: 'DEMAND_2',
+        generatedDate: '2026-08-15',
+        dueAmount: 28280.0,
+        principalOverdue: 23970.0,
+        interestOverdue: 2755.0,
+        penalCharges: 1000.0,
+        dispatchMedium: 'REGISTERED_POST',
+        dispatchRef: 'RPAD-MH-99210041',
+        dispatchedDate: '2026-08-16',
+        deliveryStatus: 'DELIVERED',
+        deliveredDate: '2026-08-18',
+        generatedByUserId: collectorId,
+        businessDate: todayStr,
+        content: 'Formal Demand Notice under Bank Bye-laws warning of NPA classification and legal recovery certificate.'
+      }
+    });
+
+    console.log(`✓ Seeded Delinquent Loan: ${overdueLoanAcc.loanAccountNumber} (DPD: 92, Asset Class: SUB_STANDARD, Assigned to Rajesh Gaikwad)`);
+    console.log(`✓ Seeded Phase 4 Recovery Action & Demand Notice (NOT-2026-00001)`);
+  }
+
+  console.log('🎉 Seed complete successfully for Phase 1, 2, 3 & 4!');
 }
 
 main()
